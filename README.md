@@ -11,15 +11,16 @@
 | 里程碑 | 状态 |
 |---|---|
 | W1 地基：脚手架、数据库、注册登录、CI | ✅ 完成 |
-| W2 求职看板 | ⏳ 下一步 |
-| W3 岗位匹配备考 | — |
+| W2 求职看板：投递管理、拖拽看板、JD 智能解析、日程与日历 | ✅ 完成 |
+| W3 岗位匹配备考 | ⏳ 下一步 |
 | W4–W5 面试复盘 | — |
 | W6 求职 Agent | — |
 
 ## 技术栈
 
-- **前端：** Next.js 16（App Router）· React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui · TanStack Query
+- **前端：** Next.js 16（App Router）· React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui · TanStack Query · dnd-kit · FullCalendar 7
 - **后端：** Python 3.12 · FastAPI · SQLAlchemy 2（异步）· Alembic · Pydantic v2
+- **大模型：** 自研抽象层，支持 DeepSeek / 通义千问 / OpenAI（OpenAI 兼容接口）与 Claude（官方 SDK）
 - **基础设施：** PostgreSQL 16 · Redis 7 · Docker Compose · GitHub Actions
 
 ## 架构概览
@@ -53,7 +54,9 @@ pnpm install
 pnpm dev
 ```
 
-打开 http://localhost:3000 注册账号即可使用。后端接口文档：http://127.0.0.1:8000/api/docs
+打开 http://localhost:3000 注册账号即可使用。
+
+**启用 JD 智能解析：** 在 `.env` 中填写 `DEEPSEEK_API_KEY`（默认服务商），重启后端即可。想换成 Claude，设置 `LLM_PROVIDER=anthropic` 并填写 `ANTHROPIC_API_KEY`。不配置 Key 也能使用，新建投递时手动填写即可。后端接口文档：http://127.0.0.1:8000/api/docs
 
 ## 常用命令
 

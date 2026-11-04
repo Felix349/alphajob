@@ -50,6 +50,21 @@ async def client() -> AsyncIterator[AsyncClient]:
 
 
 @pytest.fixture
+async def user_client(make_client):
+    """已注册并登录的客户端。用法：client = await user_client("a@example.com")"""
+
+    async def _login(email: str = "user0@example.com") -> AsyncClient:
+        c = await make_client()
+        resp = await c.post(
+            "/api/auth/register", json={"email": email, "password": "correct-horse-battery"}
+        )
+        assert resp.status_code == 201, resp.text
+        return c
+
+    return _login
+
+
+@pytest.fixture
 async def make_client():
     """需要多个互相独立的登录会话时使用（例如测试用户 A 不能访问用户 B 的数据）。"""
     clients: list[AsyncClient] = []

@@ -5,9 +5,11 @@ description = "AlphaJob 后端：求职 Agent 的 FastAPI 服务"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.1",
+    "anthropic>=2.4.0",
     "asyncpg>=0.32.0",
     "email-validator>=2.3.0",
     "fastapi>=0.162.0",
+    "openai>=3.45.0",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.16.2",
     "pyjwt>=2.15.1",
@@ -36,6 +38,8 @@ ignore = ["B008"]
 [tool.ruff.lint.per-file-ignores]
 # Alembic 自动生成的迁移文件不检查行长度
 "alembic/versions/*" = ["E501"]
+# 提示词是自然语言长文本，不限制行长度
+"app/prompts/*" = ["E501"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -28,8 +28,38 @@ const NAV: NavItem[] = [
   { href: "/agent", label: "求职 Agent", icon: Bot },
 ];
 
+function CurrentNavLinks() {
+  return <NavLinks pathname={usePathname()} />;
+}
+
+function NavLinks({ pathname }: { pathname: string }) {
+  return (
+    <nav className="flex flex-1 flex-col gap-1 px-3">
+      {NAV.map(({ href, label, icon: Icon }) => {
+        // 投递详情页属于“求职看板”
+        const active =
+          pathname.startsWith(href) || (href === "/board" && pathname.startsWith("/applications"));
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: user, error, isPending } = useCurrentUser();
@@ -63,26 +93,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             AlphaJob
           </Link>
         </div>
-        <nav className="flex flex-1 flex-col gap-1 px-3">
-          {NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* 读取当前 URL 的部分必须放在 Suspense 里：开启 cacheComponents 后，
+            动态路由（如 /applications/[id]）的 URL 只有运行时才知道，不能阻塞静态外壳的预渲染 */}
+        <Suspense fallback={<NavLinks pathname="" />}>
+          <CurrentNavLinks />
+        </Suspense>
         <div className="border-t p-3">
           <div className="truncate px-2 pb-2 text-sm" title={user?.email}>
             {isPending ? "加载中…" : (user?.display_name ?? user?.email)}
