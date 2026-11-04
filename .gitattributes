@@ -1,0 +1,6 @@
+# 仓库内统一使用 LF 换行，避免 Windows / Linux（Docker、CI）之间的换行差异
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary

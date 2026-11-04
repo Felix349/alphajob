@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: 后端（lint + 测试）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: alphajob
+          POSTGRES_PASSWORD: alphajob_ci_password
+          POSTGRES_DB: alphajob_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U alphajob" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    env:
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      DATABASE_URL: postgresql+asyncpg://alphajob:alphajob_ci_password@127.0.0.1:5432/alphajob_test
+      TEST_DATABASE_URL: postgresql+asyncpg://alphajob:alphajob_ci_password@127.0.0.1:5432/alphajob_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - name: 迁移能在空数据库上完整执行
+        run: uv run alembic upgrade head && uv run alembic downgrade base
+      - run: uv run pytest -q
+
+  frontend:
+    name: 前端（类型 + lint + 构建）
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - name: 接口类型与后端保持同步
+        working-directory: frontend
+        run: |
+          pnpm gen:api
+          git diff --exit-code -- openapi.json src/lib/api/schema.d.ts || {
+            echo "::error::后端接口有变化，请在本地运行 pnpm gen:api 并提交生成的文件"; exit 1; }
+      - run: pnpm typecheck
+        working-directory: frontend
+      - run: pnpm lint
+        working-directory: frontend
+      - run: pnpm exec prettier --check src
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend
