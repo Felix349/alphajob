@@ -31,3 +31,8 @@ data/
 .DS_Store
 Thumbs.db
 *.log
+
+# 评估结果与本地私有用例（可能包含真实 JD 原文）
+backend/evals/*/results/
+backend/evals/*/cases.local.jsonl
+backend/evals/*/raw/

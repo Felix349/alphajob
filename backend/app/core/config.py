@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +36,21 @@ class Settings(BaseSettings):
 
     # 逗号分隔的字符串，例如 "http://localhost:3000,http://127.0.0.1:3000"
     cors_origins: str = "http://localhost:3000"
+
+    # ---- 大模型 ----
+    # 默认使用哪家：deepseek / qwen / openai / anthropic
+    llm_provider: Literal["deepseek", "qwen", "openai", "anthropic"] = "deepseek"
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_model: str = "deepseek-chat"
+    # 通义千问与语音转写共用阿里云百炼的 Key
+    dashscope_api_key: str = ""
+    qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    qwen_model: str = "qwen-plus"
+    openai_api_key: str = ""
+    openai_model: str = ""
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-5-5"
 
     @property
     def cors_origin_list(self) -> list[str]:

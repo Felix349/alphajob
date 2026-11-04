@@ -89,10 +89,340 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Applications */
+        get: operations["applications-list_applications"];
+        put?: never;
+        /** Create Application */
+        post: operations["applications-create_application"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/parse-jd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Parse Jd */
+        post: operations["applications-parse_jd"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{app_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Application */
+        get: operations["applications-get_application"];
+        put?: never;
+        post?: never;
+        /** Delete Application */
+        delete: operations["applications-delete_application"];
+        options?: never;
+        head?: never;
+        /** Update Application */
+        patch: operations["applications-update_application"];
+        trace?: never;
+    };
+    "/api/applications/{app_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Event */
+        post: operations["applications-create_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Events
+         * @description 日历视图：查询 [start, end) 时间范围内开始的所有日程。
+         */
+        get: operations["events-list_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Event */
+        delete: operations["events-delete_event"];
+        options?: never;
+        head?: never;
+        /** Update Event */
+        patch: operations["events-update_event"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApplicationCreate */
+        ApplicationCreate: {
+            /** Company */
+            company: string;
+            /** Role */
+            role: string;
+            /** Location */
+            location?: string | null;
+            /** Channel */
+            channel?: string | null;
+            /** Job Url */
+            job_url?: string | null;
+            /** Jd Text */
+            jd_text?: string | null;
+            jd_parsed?: components["schemas"]["ParsedJD"] | null;
+            /** @default wishlist */
+            stage: components["schemas"]["Stage"];
+            /** Applied At */
+            applied_at?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** ApplicationDetail */
+        ApplicationDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Company */
+            company: string;
+            /** Role */
+            role: string;
+            /** Location */
+            location: string | null;
+            /** Channel */
+            channel: string | null;
+            /** Job Url */
+            job_url: string | null;
+            stage: components["schemas"]["Stage"];
+            /** Position */
+            position: number;
+            /** Applied At */
+            applied_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            next_event?: components["schemas"]["EventOut"] | null;
+            /** Jd Text */
+            jd_text: string | null;
+            jd_parsed: components["schemas"]["ParsedJD"] | null;
+            /** Notes */
+            notes: string | null;
+            /** Events */
+            events: components["schemas"]["EventOut"][];
+        };
+        /** ApplicationOut */
+        ApplicationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Company */
+            company: string;
+            /** Role */
+            role: string;
+            /** Location */
+            location: string | null;
+            /** Channel */
+            channel: string | null;
+            /** Job Url */
+            job_url: string | null;
+            stage: components["schemas"]["Stage"];
+            /** Position */
+            position: number;
+            /** Applied At */
+            applied_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            next_event?: components["schemas"]["EventOut"] | null;
+        };
+        /**
+         * ApplicationUpdate
+         * @description PATCH：只更新请求里出现的字段（exclude_unset）。拖拽改阶段也走这里。
+         */
+        ApplicationUpdate: {
+            /** Company */
+            company?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Channel */
+            channel?: string | null;
+            /** Job Url */
+            job_url?: string | null;
+            /** Jd Text */
+            jd_text?: string | null;
+            jd_parsed?: components["schemas"]["ParsedJD"] | null;
+            stage?: components["schemas"]["Stage"] | null;
+            /** Position */
+            position?: number | null;
+            /** Applied At */
+            applied_at?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * CalendarEventOut
+         * @description 日历视图用：带上所属投递的公司和岗位，前端不用再单独请求。
+         */
+        CalendarEventOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            type: components["schemas"]["EventType"];
+            /** Title */
+            title: string;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /** End At */
+            end_at: string | null;
+            /** Link */
+            link: string | null;
+            /** Note */
+            note: string | null;
+            /** Company */
+            company: string;
+            /** Role */
+            role: string;
+            stage: components["schemas"]["Stage"];
+        };
+        /** EventCreate */
+        EventCreate: {
+            type: components["schemas"]["EventType"];
+            /** Title */
+            title: string;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /** End At */
+            end_at?: string | null;
+            /** Link */
+            link?: string | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** EventOut */
+        EventOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            type: components["schemas"]["EventType"];
+            /** Title */
+            title: string;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /** End At */
+            end_at: string | null;
+            /** Link */
+            link: string | null;
+            /** Note */
+            note: string | null;
+        };
+        /**
+         * EventType
+         * @enum {string}
+         */
+        EventType: "written_test" | "interview" | "deadline" | "other";
+        /** EventUpdate */
+        EventUpdate: {
+            type?: components["schemas"]["EventType"] | null;
+            /** Title */
+            title?: string | null;
+            /** Start At */
+            start_at?: string | null;
+            /** End At */
+            end_at?: string | null;
+            /** Link */
+            link?: string | null;
+            /** Note */
+            note?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -108,6 +438,75 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** ParseJDRequest */
+        ParseJDRequest: {
+            /** Jd Text */
+            jd_text: string;
+        };
+        /**
+         * ParsedJD
+         * @description 大模型从岗位描述（JD）中提取的结构化信息。
+         *
+         *     这个模型同时是给大模型的输出格式（JSON Schema），所以每个字段都写清楚描述：
+         *     描述就是给模型看的提示词。
+         */
+        ParsedJD: {
+            /**
+             * Company
+             * @description 公司名称；JD 中没有明确写出时为 null，不要猜测
+             */
+            company: string | null;
+            /**
+             * Role
+             * @description 岗位名称，例如“后端开发工程师（校招）”
+             */
+            role: string | null;
+            /**
+             * Location
+             * @description 工作地点，多个城市用顿号分隔；没有则为 null
+             */
+            location: string | null;
+            /**
+             * Job Type
+             * @description 招聘类型：校招 / 实习 / 社招；无法判断时为 null
+             */
+            job_type: string | null;
+            /**
+             * Salary
+             * @description 薪资范围，保留原文写法；没有则为 null
+             */
+            salary: string | null;
+            /**
+             * Deadline
+             * @description 投递截止日期（YYYY-MM-DD）；没有则为 null
+             */
+            deadline: string | null;
+            /**
+             * Responsibilities
+             * @description 岗位职责，每条一句话，最多 8 条
+             */
+            responsibilities: string[];
+            /**
+             * Requirements
+             * @description 任职要求（必须具备的条件），每条一句话，最多 8 条
+             */
+            requirements: string[];
+            /**
+             * Bonus
+             * @description 加分项（优先考虑的条件）；没有则为空数组
+             */
+            bonus: string[];
+            /**
+             * Tech Stack
+             * @description JD 中提到的具体技术、语言、框架或工具，例如 Python、PyTorch、Kubernetes
+             */
+            tech_stack: string[];
+            /**
+             * Summary
+             * @description 用一句话概括这个岗位最看重什么，不超过 40 字
+             */
+            summary: string;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             /**
@@ -120,6 +519,12 @@ export interface components {
             /** Display Name */
             display_name?: string | null;
         };
+        /**
+         * Stage
+         * @description 投递阶段，也就是看板的列。面试轮次（一面/二面）用日程事件记录，不单独占一列。
+         * @enum {string}
+         */
+        Stage: "wishlist" | "applied" | "written_test" | "interviewing" | "hr" | "offer" | "ended";
         /**
          * UserOut
          * @description 返回给前端的用户信息：注意不包含 password_hash。
@@ -287,6 +692,331 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+        };
+    };
+    "applications-list_applications": {
+        parameters: {
+            query?: {
+                stage?: components["schemas"]["Stage"] | null;
+                /** @description 按公司或岗位模糊搜索 */
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "applications-create_application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "applications-parse_jd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParseJDRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParsedJD"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "applications-get_application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "applications-delete_application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "applications-update_application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "applications-create_event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "events-list_events": {
+        parameters: {
+            query: {
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "events-delete_event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "events-update_event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
