@@ -1,0 +1,40 @@
+# 开发环境基础设施：只运行 Postgres 和 Redis，前后端在本机热重载运行
+# 启动：docker compose up -d      停止：docker compose down
+name: alphajob
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-alphajob}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-alphajob_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-alphajob}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 首次初始化时执行：创建测试数据库
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alphajob} -d ${POSTGRES_DB:-alphajob}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:

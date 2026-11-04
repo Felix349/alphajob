@@ -1,0 +1,44 @@
+[project]
+name = "alphajob-backend"
+version = "0.1.0"
+description = "AlphaJob 后端：求职 Agent 的 FastAPI 服务"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.1",
+    "asyncpg>=0.32.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.162.0",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.16.2",
+    "pyjwt>=2.15.1",
+    "sqlalchemy[asyncio]>=2.1.8",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F：基础错误；I：import 排序；B：常见 bug；UP：新语法；ASYNC：异步陷阱
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+# FastAPI 依赖注入的惯用写法 Depends() 会触发 B008，这里忽略
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+# Alembic 自动生成的迁移文件不检查行长度
+"alembic/versions/*" = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
