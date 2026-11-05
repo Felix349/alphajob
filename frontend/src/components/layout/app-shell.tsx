@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  BookOpen,
   Bot,
   CalendarDays,
   FileText,
@@ -27,6 +28,7 @@ const NAV: NavItem[] = [
   { href: "/calendar", label: "日历", icon: CalendarDays },
   { href: "/resume", label: "我的简历", icon: FileText },
   { href: "/interviews", label: "面试复盘", icon: MessagesSquare },
+  { href: "/questions", label: "题库", icon: BookOpen },
   { href: "/agent", label: "求职 Agent", icon: Bot },
 ];
 

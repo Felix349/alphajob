@@ -33,6 +33,7 @@ import { formatDate } from "@/lib/format";
 import { STAGES } from "@/lib/stages";
 
 import { EventPanel } from "./event-panel";
+import { InterviewPanel } from "./interview-panel";
 import { JdPanel } from "./jd-panel";
 import { MatchPanel } from "./match-panel";
 import { PrepChecklist } from "./prep-checklist";
@@ -122,6 +123,7 @@ function Detail({ app }: { app: ApplicationDetail }) {
         </div>
         <div className="flex flex-col gap-6">
           <PrepChecklist appId={app.id} />
+          <InterviewPanel appId={app.id} />
           <EventPanel appId={app.id} events={app.events} />
         </div>
       </div>

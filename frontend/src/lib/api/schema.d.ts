@@ -300,6 +300,114 @@ export interface paths {
         patch: operations["match-update_prep_item"];
         trace?: never;
     };
+    "/api/applications/{app_id}/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Application Interviews */
+        get: operations["interviews-list_application_interviews"];
+        put?: never;
+        /**
+         * Create Interview
+         * @description 新建一次复盘。立即返回（状态为 pending），后台 Worker 处理完成后状态变为 done。
+         *     文件上传要用 multipart/form-data，所以这里用表单字段而不是 JSON。
+         */
+        post: operations["interviews-create_interview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List All Interviews */
+        get: operations["interviews-list_all_interviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/{interview_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Interview */
+        get: operations["interviews-get_interview"];
+        put?: never;
+        post?: never;
+        /** Delete Interview */
+        delete: operations["interviews-delete_interview"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/{interview_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Interview */
+        post: operations["interviews-retry_interview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Questions */
+        get: operations["interviews-list_questions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/questions/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Question */
+        patch: operations["interviews-update_question"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -427,6 +535,27 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** Body_interviews-create_interview */
+        "Body_interviews-create_interview": {
+            /**
+             * Round
+             * @description 面试轮次，例如“一面”
+             * @default
+             */
+            round: string;
+            /** Held On */
+            held_on?: string | null;
+            /**
+             * Text
+             * @description 文字回忆（和 audio 二选一）
+             */
+            text?: string | null;
+            /**
+             * Audio
+             * @description 口述回忆的录音（和 text 二选一）
+             */
+            audio?: string | null;
+        };
         /** Body_resume-upload_resume */
         "Body_resume-upload_resume": {
             /** File */
@@ -535,6 +664,117 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** InterviewDetail */
+        InterviewDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Round */
+            round: string;
+            /** Held On */
+            held_on: string | null;
+            /**
+             * Input Type
+             * @enum {string}
+             */
+            input_type: "text" | "audio";
+            /** Audio Filename */
+            audio_filename: string | null;
+            /** Audio Seconds */
+            audio_seconds: number | null;
+            status: components["schemas"]["InterviewStatus"];
+            /** Error */
+            error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Question Count
+             * @default 0
+             */
+            question_count: number;
+            /** Company */
+            company: string;
+            /** Role */
+            role: string;
+            /** Raw Text */
+            raw_text: string | null;
+            /** Transcript */
+            transcript: string | null;
+            summary: components["schemas"]["InterviewSummaryOut"] | null;
+            /** Model */
+            model: string | null;
+            /** Questions */
+            questions: components["schemas"]["QuestionOut"][];
+        };
+        /**
+         * InterviewOut
+         * @description 列表用：不含转写全文和逐题结果。
+         */
+        InterviewOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Round */
+            round: string;
+            /** Held On */
+            held_on: string | null;
+            /**
+             * Input Type
+             * @enum {string}
+             */
+            input_type: "text" | "audio";
+            /** Audio Filename */
+            audio_filename: string | null;
+            /** Audio Seconds */
+            audio_seconds: number | null;
+            status: components["schemas"]["InterviewStatus"];
+            /** Error */
+            error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Question Count
+             * @default 0
+             */
+            question_count: number;
+        };
+        /**
+         * InterviewStatus
+         * @description 处理流程的状态机：pending → (transcribing) → analyzing → done，任何一步出错都进入 failed。
+         * @enum {string}
+         */
+        InterviewStatus: "pending" | "transcribing" | "analyzing" | "done" | "failed";
+        /** InterviewSummaryOut */
+        InterviewSummaryOut: {
+            /** Summary */
+            summary: string;
+            /** Highlights */
+            highlights: string[];
+            /** Weak Points */
+            weak_points: components["schemas"]["WeakPointOut"][];
+            /** Next Round Advice */
+            next_round_advice: string[];
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -545,6 +785,11 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * Mastery
+         * @enum {string}
+         */
+        Mastery: "new" | "reviewing" | "mastered";
         /** MatchAnalysis */
         MatchAnalysis: {
             /**
@@ -753,6 +998,91 @@ export interface components {
              */
             priority: 1 | 2 | 3;
         };
+        /**
+         * QuestionBankItem
+         * @description 题库列表：带上公司、岗位和轮次，前端不用再单独请求。
+         */
+        QuestionBankItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Interview Id
+             * Format: uuid
+             */
+            interview_id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Question */
+            question: string;
+            /** My Answer */
+            my_answer: string | null;
+            /** Score */
+            score: number;
+            /** Feedback */
+            feedback: string;
+            /** Improved Answer */
+            improved_answer: string;
+            /** Tags */
+            tags: string[];
+            mastery: components["schemas"]["Mastery"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Company */
+            company: string;
+            /** Role */
+            role: string;
+            /** Round */
+            round: string;
+        };
+        /** QuestionOut */
+        QuestionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Interview Id
+             * Format: uuid
+             */
+            interview_id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Question */
+            question: string;
+            /** My Answer */
+            my_answer: string | null;
+            /** Score */
+            score: number;
+            /** Feedback */
+            feedback: string;
+            /** Improved Answer */
+            improved_answer: string;
+            /** Tags */
+            tags: string[];
+            mastery: components["schemas"]["Mastery"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** QuestionUpdate */
+        QuestionUpdate: {
+            mastery: components["schemas"]["Mastery"];
+        };
         /** RegisterRequest */
         RegisterRequest: {
             /**
@@ -854,6 +1184,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WeakPointOut */
+        WeakPointOut: {
+            /**
+             * Topic
+             * @description 薄弱点的主题，2–10 个字，例如“Agent 评测方法”
+             */
+            topic: string;
+            /**
+             * Detail
+             * @description 具体表现，以及接下来该补什么，不超过 80 字
+             */
+            detail: string;
         };
     };
     responses: never;
@@ -1602,6 +1945,252 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrepItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-list_application_interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-create_interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_interviews-create_interview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-list_all_interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"][];
+                };
+            };
+        };
+    };
+    "interviews-get_interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-delete_interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-retry_interview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-list_questions": {
+        parameters: {
+            query?: {
+                company?: string | null;
+                tag?: string | null;
+                mastery?: components["schemas"]["Mastery"] | null;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionBankItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "interviews-update_question": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionOut"];
                 };
             };
             /** @description Validation Error */

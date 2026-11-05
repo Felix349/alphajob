@@ -1031,6 +1031,403 @@
           }
         }
       }
+    },
+    "/api/applications/{app_id}/interviews": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Create Interview",
+        "description": "新建一次复盘。立即返回（状态为 pending），后台 Worker 处理完成后状态变为 done。\n文件上传要用 multipart/form-data，所以这里用表单字段而不是 JSON。",
+        "operationId": "interviews-create_interview",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_interviews-create_interview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "List Application Interviews",
+        "operationId": "interviews-list_application_interviews",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InterviewOut"
+                  },
+                  "title": "Response Interviews-List Application Interviews"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interviews": {
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "List All Interviews",
+        "operationId": "interviews-list_all_interviews",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InterviewOut"
+                  },
+                  "type": "array",
+                  "title": "Response Interviews-List All Interviews"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interviews/{interview_id}": {
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Get Interview",
+        "operationId": "interviews-get_interview",
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Delete Interview",
+        "operationId": "interviews-delete_interview",
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interviews/{interview_id}/retry": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Retry Interview",
+        "operationId": "interviews-retry_interview",
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/questions": {
+      "get": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "List Questions",
+        "operationId": "interviews-list_questions",
+        "parameters": [
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Company"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag"
+            }
+          },
+          {
+            "name": "mastery",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Mastery"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Mastery"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuestionBankItem"
+                  },
+                  "title": "Response Interviews-List Questions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/questions/{question_id}": {
+      "patch": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "Update Question",
+        "operationId": "interviews-update_question",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1530,6 +1927,55 @@
         "title": "ApplicationUpdate",
         "description": "PATCH：只更新请求里出现的字段（exclude_unset）。拖拽改阶段也走这里。"
       },
+      "Body_interviews-create_interview": {
+        "properties": {
+          "round": {
+            "type": "string",
+            "title": "Round",
+            "description": "面试轮次，例如“一面”",
+            "default": ""
+          },
+          "held_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held On"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text",
+            "description": "文字回忆（和 audio 二选一）"
+          },
+          "audio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio",
+            "description": "口述回忆的录音（和 text 二选一）"
+          }
+        },
+        "type": "object",
+        "title": "Body_interviews-create_interview"
+      },
       "Body_resume-upload_resume": {
         "properties": {
           "file": {
@@ -1864,6 +2310,317 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "InterviewDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "application_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Application Id"
+          },
+          "round": {
+            "type": "string",
+            "title": "Round"
+          },
+          "held_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held On"
+          },
+          "input_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "audio"
+            ],
+            "title": "Input Type"
+          },
+          "audio_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Filename"
+          },
+          "audio_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Seconds"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "question_count": {
+            "type": "integer",
+            "title": "Question Count",
+            "default": 0
+          },
+          "company": {
+            "type": "string",
+            "title": "Company"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Text"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOut"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "application_id",
+          "round",
+          "held_on",
+          "input_type",
+          "audio_filename",
+          "audio_seconds",
+          "status",
+          "error",
+          "created_at",
+          "company",
+          "role",
+          "raw_text",
+          "transcript",
+          "summary",
+          "model",
+          "questions"
+        ],
+        "title": "InterviewDetail"
+      },
+      "InterviewOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "application_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Application Id"
+          },
+          "round": {
+            "type": "string",
+            "title": "Round"
+          },
+          "held_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held On"
+          },
+          "input_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "audio"
+            ],
+            "title": "Input Type"
+          },
+          "audio_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Filename"
+          },
+          "audio_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Seconds"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "question_count": {
+            "type": "integer",
+            "title": "Question Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "application_id",
+          "round",
+          "held_on",
+          "input_type",
+          "audio_filename",
+          "audio_seconds",
+          "status",
+          "error",
+          "created_at"
+        ],
+        "title": "InterviewOut",
+        "description": "列表用：不含转写全文和逐题结果。"
+      },
+      "InterviewStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "transcribing",
+          "analyzing",
+          "done",
+          "failed"
+        ],
+        "title": "InterviewStatus",
+        "description": "处理流程的状态机：pending → (transcribing) → analyzing → done，任何一步出错都进入 failed。"
+      },
+      "InterviewSummaryOut": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Highlights"
+          },
+          "weak_points": {
+            "items": {
+              "$ref": "#/components/schemas/WeakPointOut"
+            },
+            "type": "array",
+            "title": "Weak Points"
+          },
+          "next_round_advice": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Next Round Advice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "highlights",
+          "weak_points",
+          "next_round_advice"
+        ],
+        "title": "InterviewSummaryOut"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -1882,6 +2639,15 @@
           "password"
         ],
         "title": "LoginRequest"
+      },
+      "Mastery": {
+        "type": "string",
+        "enum": [
+          "new",
+          "reviewing",
+          "mastered"
+        ],
+        "title": "Mastery"
       },
       "MatchAnalysis": {
         "properties": {
@@ -2314,6 +3080,186 @@
         ],
         "title": "PrepSuggestion"
       },
+      "QuestionBankItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "interview_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Interview Id"
+          },
+          "application_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Application Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "my_answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Answer"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "feedback": {
+            "type": "string",
+            "title": "Feedback"
+          },
+          "improved_answer": {
+            "type": "string",
+            "title": "Improved Answer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "mastery": {
+            "$ref": "#/components/schemas/Mastery"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "company": {
+            "type": "string",
+            "title": "Company"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "round": {
+            "type": "string",
+            "title": "Round"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "interview_id",
+          "application_id",
+          "question",
+          "my_answer",
+          "score",
+          "feedback",
+          "improved_answer",
+          "tags",
+          "mastery",
+          "created_at",
+          "company",
+          "role",
+          "round"
+        ],
+        "title": "QuestionBankItem",
+        "description": "题库列表：带上公司、岗位和轮次，前端不用再单独请求。"
+      },
+      "QuestionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "interview_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Interview Id"
+          },
+          "application_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Application Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "my_answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Answer"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "feedback": {
+            "type": "string",
+            "title": "Feedback"
+          },
+          "improved_answer": {
+            "type": "string",
+            "title": "Improved Answer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "mastery": {
+            "$ref": "#/components/schemas/Mastery"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "interview_id",
+          "application_id",
+          "question",
+          "my_answer",
+          "score",
+          "feedback",
+          "improved_answer",
+          "tags",
+          "mastery",
+          "created_at"
+        ],
+        "title": "QuestionOut"
+      },
+      "QuestionUpdate": {
+        "properties": {
+          "mastery": {
+            "$ref": "#/components/schemas/Mastery"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mastery"
+        ],
+        "title": "QuestionUpdate"
+      },
       "RegisterRequest": {
         "properties": {
           "email": {
@@ -2540,6 +3486,26 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WeakPointOut": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "薄弱点的主题，2–10 个字，例如“Agent 评测方法”"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "具体表现，以及接下来该补什么，不超过 80 字"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "detail"
+        ],
+        "title": "WeakPointOut"
       }
     }
   }

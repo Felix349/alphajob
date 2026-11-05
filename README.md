@@ -5,6 +5,8 @@
 - 产品需求：[产品需求文档.md](产品需求文档.md)
 - 技术设计：[技术设计文档.md](技术设计文档.md)
 - 设计笔记：[docs/notes/](docs/notes/)
+- 学习路线：[docs/学习路线.md](docs/学习路线.md)（按“一个请求的完整旅程”精读项目）
+- 命令速查：[docs/开发命令手册.md](docs/开发命令手册.md)
 
 ## 当前进度
 
@@ -12,9 +14,9 @@
 |---|---|
 | W1 地基：脚手架、数据库、注册登录、CI | ✅ 完成 |
 | W2 求职看板：投递管理、拖拽看板、JD 智能解析、日程与日历 | ✅ 完成 |
-| W3 岗位匹配备考：简历上传、流式匹配分析、备考清单 | ✅ 完成（浏览器实测待补） |
-| W4–W5 面试复盘 | ⏳ 下一步 |
-| W6 求职 Agent | — |
+| W3 岗位匹配备考：简历上传、流式匹配分析、备考清单 | ✅ 完成 |
+| W4 面试复盘：录音 / 文字复盘、语音转写、后台任务、个人题库 | ✅ 完成 |
+| W6 求职 Agent | ⏳ 下一步 |
 
 ## 技术栈
 
@@ -27,6 +29,7 @@
 
 ```
 浏览器 ──> Next.js（:3000）──/api/* 反向代理──> FastAPI（:8000）──> PostgreSQL / Redis
+                                                               └─ 任务 ──> Redis ──> Worker（转写、复盘分析）
 ```
 
 浏览器只和 Next.js 打交道，前后端同源：登录 Cookie 自动携带，不需要配置跨域。
@@ -48,13 +51,19 @@ uv sync
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
-# 4. 启动前端（新终端）
+# 4. 启动后台 Worker（新终端；面试复盘需要它）
+cd backend
+uv run arq app.worker.WorkerSettings
+
+# 5. 启动前端（新终端）
 cd frontend
 pnpm install
 pnpm dev
 ```
 
 打开 http://localhost:3000 注册账号即可使用。
+
+**启用语音复盘：**在 `.env` 中填写 `DASHSCOPE_API_KEY`（阿里云百炼）。不配置也能用文字复盘。
 
 **启用 JD 智能解析：** 在 `.env` 中填写 `DEEPSEEK_API_KEY`（默认服务商），重启后端即可。想换成 Claude，设置 `LLM_PROVIDER=anthropic` 并填写 `ANTHROPIC_API_KEY`。不配置 Key 也能使用，新建投递时手动填写即可。后端接口文档：http://127.0.0.1:8000/api/docs
 
