@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
   CalendarDays,
+  FileText,
   KanbanSquare,
   LogOut,
   MessagesSquare,
@@ -24,6 +25,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon };
 const NAV: NavItem[] = [
   { href: "/board", label: "求职看板", icon: KanbanSquare },
   { href: "/calendar", label: "日历", icon: CalendarDays },
+  { href: "/resume", label: "我的简历", icon: FileText },
   { href: "/interviews", label: "面试复盘", icon: MessagesSquare },
   { href: "/agent", label: "求职 Agent", icon: Bot },
 ];

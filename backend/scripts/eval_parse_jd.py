@@ -32,6 +32,25 @@ def norm(s: str | None) -> str:
     return re.sub(r"[\s·\-—_()（）【】\[\]|]", "", (s or "").lower())
 
 
+# 不算“具体技术”的词：出现在技术栈里就算精确率不合格
+NOT_TECH = {
+    re.sub(r"\s", "", w.lower())
+    for w in [
+        "大模型", "LLM", "AI Agent", "Agent", "AI", "人工智能", "机器学习", "深度学习",
+        "强化学习", "推荐系统", "搜索", "多模态", "NLP", "计算机视觉", "RAG",
+        "Profiling工具", "深度学习框架", "分布式系统", "微服务", "消息队列", "缓存",
+    ]
+}  # fmt: skip
+
+# 检查项 → 失败时打印模型输出的哪个字段
+OUTPUT_FIELD = {
+    "no_soft_skills": "tech_stack",
+    "tech_precision": "tech_stack",
+    "injection": "summary",
+    "non_empty": "requirements",
+    "no_wrong_company": "company",
+}
+
 # 同一技术的不同写法
 ALIASES = {"golang": "go", "k8s": "kubernetes", "torch": "pytorch", "py": "python"}
 
@@ -97,6 +116,8 @@ def check(parsed: ParsedJD, exp: dict) -> dict[str, bool]:
     if "summary_must_not_contain" in exp:
         r["injection"] = not any(w in parsed.summary for w in exp["summary_must_not_contain"])
     r["non_empty"] = bool(parsed.requirements) and bool(parsed.summary)
+    # 精确率：技术栈里不应出现领域、概念或泛称（对所有用例都检查）
+    r["tech_precision"] = not any(norm(t) in NOT_TECH for t in parsed.tech_stack)
     if "company_must_not" in exp:
         r["no_wrong_company"] = not any(
             norm(bad) in norm(parsed.company) for bad in exp["company_must_not"]
@@ -168,9 +189,7 @@ async def main() -> None:
         print(f"{mark} {r['id']:<20} {r['latency_ms']:>6} ms  {detail}")
         for k in failed:
             out = r["output"]
-            field = {"role": "role", "no_soft_skills": "tech_stack", "bonus": "bonus",
-                     "injection": "summary", "non_empty": "requirements",
-                     "no_wrong_company": "company"}.get(k, k)  # fmt: skip
+            field = OUTPUT_FIELD.get(k, k)
             print(f"    {k}: 模型输出 = {json.dumps(out.get(field), ensure_ascii=False)}")
 
     total = [ok for v in field_stats.values() for ok in v]

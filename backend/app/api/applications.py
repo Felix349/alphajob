@@ -3,10 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_llm
 from app.core.db import get_db
-from app.llm import LLMClient, LLMError, LLMNotConfigured
-from app.llm.factory import get_llm_client
+from app.llm import LLMClient, LLMError
 from app.models import Stage, User
 from app.schemas.application import (
     ApplicationCreate,
@@ -23,17 +22,6 @@ from app.services import jd as jd_service
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, detail="投递记录不存在")
-
-
-def require_llm() -> LLMClient:
-    """依赖：拿到配置好的大模型客户端；没配 API Key 时返回 503，前端可以提示用户手动填写。
-    测试中通过 app.dependency_overrides[require_llm] 替换成假的实现。"""
-    try:
-        return get_llm_client()
-    except LLMNotConfigured as exc:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"智能解析暂不可用：{exc}"
-        ) from None
 
 
 @router.get("", response_model=list[ApplicationOut])

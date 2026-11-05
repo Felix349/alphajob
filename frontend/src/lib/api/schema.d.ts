@@ -198,6 +198,108 @@ export interface paths {
         patch: operations["events-update_event"];
         trace?: never;
     };
+    "/api/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Resume
+         * @description 还没有简历时返回 null（而不是 404）：“没有简历”是正常状态，不是错误。
+         */
+        get: operations["resume-get_resume"];
+        /** Save Resume */
+        put: operations["resume-save_resume"];
+        post?: never;
+        /** Delete Resume */
+        delete: operations["resume-delete_resume"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resume/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Resume
+         * @description 上传 PDF / Markdown / 文本文件，提取成文本后保存。原文件不保存，只保存提取出的文本。
+         */
+        post: operations["resume-upload_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{app_id}/match-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Match Report */
+        get: operations["match-get_match_report"];
+        put?: never;
+        /**
+         * Create Match Report
+         * @description 生成匹配分析，以 SSE 流式返回。
+         *
+         *     事件：delta（模型输出的 JSON 片段，前端边收边渲染）、reset（结果作废、正在修正）、
+         *     done（保存好的最终结果）、error（失败原因）。
+         */
+        post: operations["match-create_match_report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{app_id}/prep-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Prep Items */
+        get: operations["match-list_prep_items"];
+        put?: never;
+        /** Create Prep Item */
+        post: operations["match-create_prep_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prep-items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Prep Item */
+        delete: operations["match-delete_prep_item"];
+        options?: never;
+        head?: never;
+        /** Update Prep Item */
+        patch: operations["match-update_prep_item"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -325,6 +427,11 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** Body_resume-upload_resume */
+        "Body_resume-upload_resume": {
+            /** File */
+            file: string;
+        };
         /**
          * CalendarEventOut
          * @description 日历视图用：带上所属投递的公司和岗位，前端不用再单独请求。
@@ -438,6 +545,75 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MatchAnalysis */
+        MatchAnalysis: {
+            /**
+             * Score
+             * @description 整体匹配度，0–100 的整数。要克制：大部分要求都是 strong 才给 80 以上
+             */
+            score: number;
+            /**
+             * Summary
+             * @description 一段话总评：这个岗位最看重什么、你的优势和最大的差距，不超过 120 字
+             */
+            summary: string;
+            /**
+             * Highlights
+             * @description 最值得在面试中重点讲的 2–5 个亮点，每条都要能对应到简历中的具体经历
+             */
+            highlights: string[];
+            /**
+             * Requirements
+             * @description 逐条对照岗位的核心要求，5–10 条，按重要程度排序
+             */
+            requirements: components["schemas"]["RequirementMatch"][];
+            /**
+             * Prep Items
+             * @description 备考清单，5–12 条，优先覆盖 missing 和 partial 的要求
+             */
+            prep_items: components["schemas"]["PrepSuggestion"][];
+            /**
+             * Interview Questions
+             * @description 结合 JD 和简历，最可能被问到的 3–8 个面试问题（包括针对简历经历的追问）
+             */
+            interview_questions: string[];
+        };
+        /** MatchReportOut */
+        MatchReportOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            report: components["schemas"]["MatchAnalysis"];
+            /** Model */
+            model: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Resume Updated At
+             * Format: date-time
+             */
+            resume_updated_at: string;
+            /** Stale */
+            stale: boolean;
+        };
+        /** MatchRequest */
+        MatchRequest: {
+            /**
+             * Notes
+             * @description 可选：用户粘贴的面经、内推人透露的信息等
+             */
+            notes?: string | null;
+        };
         /** ParseJDRequest */
         ParseJDRequest: {
             /** Jd Text */
@@ -493,12 +669,12 @@ export interface components {
             requirements: string[];
             /**
              * Bonus
-             * @description 加分项（优先考虑的条件）；没有则为空数组
+             * @description 加分项（优先考虑的条件），最多 6 条；没有则为空数组
              */
             bonus: string[];
             /**
              * Tech Stack
-             * @description JD 中提到的具体技术、语言、框架或工具，例如 Python、PyTorch、Kubernetes
+             * @description JD 中明确出现的具体技术名词，最多 15 个：编程语言、框架、库、数据库、中间件、工具、平台，例如 Python、PyTorch、Kubernetes。不要列领域或概念（如 大模型、AI Agent、机器学习、推荐系统），也不要列泛称（如 Profiling 工具、深度学习框架）
              */
             tech_stack: string[];
             /**
@@ -506,6 +682,76 @@ export interface components {
              * @description 用一句话概括这个岗位最看重什么，不超过 40 字
              */
             summary: string;
+        };
+        /**
+         * PrepCategory
+         * @enum {string}
+         */
+        PrepCategory: "knowledge" | "project" | "question" | "other";
+        /** PrepItemCreate */
+        PrepItemCreate: {
+            /** Content */
+            content: string;
+            /** @default other */
+            category: components["schemas"]["PrepCategory"];
+            /**
+             * Priority
+             * @default 2
+             * @enum {integer}
+             */
+            priority: 1 | 2 | 3;
+        };
+        /** PrepItemOut */
+        PrepItemOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Content */
+            content: string;
+            category: components["schemas"]["PrepCategory"];
+            /** Priority */
+            priority: number;
+            /** Done */
+            done: boolean;
+            /** Source */
+            source: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PrepItemUpdate */
+        PrepItemUpdate: {
+            /** Content */
+            content?: string | null;
+            /** Done */
+            done?: boolean | null;
+            /** Priority */
+            priority?: (1 | 2 | 3) | null;
+        };
+        /** PrepSuggestion */
+        PrepSuggestion: {
+            /**
+             * Content
+             * @description 一条具体、可执行、能在 1–3 天内完成的备考任务，以动词开头，例如“复习 Raft 选主流程并能画出时序图”
+             */
+            content: string;
+            /** @description knowledge：知识点；project：项目经历的准备；question：刷题或练习题；other：其他 */
+            category: components["schemas"]["PrepCategory"];
+            /**
+             * Priority
+             * @description 1 最优先（直接对应 missing 的核心要求），3 最次要
+             * @enum {integer}
+             */
+            priority: 1 | 2 | 3;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -518,6 +764,54 @@ export interface components {
             password: string;
             /** Display Name */
             display_name?: string | null;
+        };
+        /** RequirementMatch */
+        RequirementMatch: {
+            /**
+             * Requirement
+             * @description 岗位的一项核心要求，来自 JD，用一句话概括
+             */
+            requirement: string;
+            /**
+             * Level
+             * @description strong：简历中有明确、直接的证据；partial：有相关经历但不完全对口或深度不够；missing：简历中找不到依据
+             * @enum {string}
+             */
+            level: "strong" | "partial" | "missing";
+            /**
+             * Evidence
+             * @description 简历中支撑这项判断的依据，引用或概括简历原文（写清楚是哪段经历）。level 为 missing 时填 null。绝对不要编造简历里没有的内容
+             */
+            evidence: string | null;
+            /**
+             * Advice
+             * @description 具体建议：strong 写面试时怎么讲出亮点；partial / missing 写怎么在面试前补上或如何坦诚应对
+             */
+            advice: string;
+        };
+        /** ResumeIn */
+        ResumeIn: {
+            /** Content Md */
+            content_md: string;
+        };
+        /** ResumeOut */
+        ResumeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Content Md */
+            content_md: string;
+            /** Source */
+            source: string;
+            /** Filename */
+            filename: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * Stage
@@ -1008,6 +1302,306 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "resume-get_resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeOut"] | null;
+                };
+            };
+        };
+    };
+    "resume-save_resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "resume-delete_resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "resume-upload_resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_resume-upload_resume"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "match-get_match_report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchReportOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "match-create_match_report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchRequest"];
+            };
+        };
+        responses: {
+            /** @description SSE 事件流 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "match-list_prep_items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepItemOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "match-create_prep_item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "match-delete_prep_item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "match-update_prep_item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepItemOut"];
                 };
             };
             /** @description Validation Error */

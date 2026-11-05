@@ -34,6 +34,8 @@ import { STAGES } from "@/lib/stages";
 
 import { EventPanel } from "./event-panel";
 import { JdPanel } from "./jd-panel";
+import { MatchPanel } from "./match-panel";
+import { PrepChecklist } from "./prep-checklist";
 
 export function ApplicationDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -114,10 +116,12 @@ function Detail({ app }: { app: ApplicationDetail }) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="flex flex-col gap-6">
-          <InfoForm app={app} />
+          <MatchPanel app={app} />
           <JdPanel app={app} />
+          <InfoForm app={app} />
         </div>
-        <div>
+        <div className="flex flex-col gap-6">
+          <PrepChecklist appId={app.id} />
           <EventPanel appId={app.id} events={app.events} />
         </div>
       </div>

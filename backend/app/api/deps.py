@@ -1,4 +1,4 @@
-"""路由共用的依赖：当前登录用户。"""
+"""路由共用的依赖：当前登录用户、大模型客户端。"""
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,8 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.security import decode_access_token
+from app.llm import LLMClient, LLMNotConfigured
+from app.llm.factory import get_llm_client
 from app.models import User
 from app.repositories import users as users_repo
+
+
+def require_llm() -> LLMClient:
+    """拿到配置好的大模型客户端；没配 API Key 时返回 503，前端据此提示用户。
+    测试中通过 app.dependency_overrides[require_llm] 替换成假的实现。"""
+    try:
+        return get_llm_client()
+    except LLMNotConfigured as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI 功能暂不可用：{exc}"
+        ) from None
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> User:

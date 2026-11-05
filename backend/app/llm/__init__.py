@@ -5,6 +5,24 @@
 - AnthropicClient：Claude（官方 anthropic SDK）
 """
 
-from app.llm.base import LLMClient, LLMError, LLMNotConfigured, StructuredResult
+from app.llm.base import (
+    LLMClient,
+    LLMError,
+    LLMNotConfigured,
+    StreamDone,
+    StreamEvent,
+    StreamReset,
+    StructuredResult,
+    TextDelta,
+)
 
-__all__ = ["LLMClient", "LLMError", "LLMNotConfigured", "StructuredResult"]
+__all__ = [
+    "LLMClient",
+    "LLMError",
+    "LLMNotConfigured",
+    "StreamDone",
+    "StreamEvent",
+    "StreamReset",
+    "StructuredResult",
+    "TextDelta",
+]

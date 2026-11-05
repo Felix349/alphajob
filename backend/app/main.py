@@ -7,7 +7,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import applications, auth, events, health
+from app.api import applications, auth, events, health, match, resume
 from app.core.config import get_settings
 
 
@@ -40,6 +40,8 @@ def create_app() -> FastAPI:
     api.include_router(auth.router)
     api.include_router(applications.router)
     api.include_router(events.router)
+    api.include_router(resume.router)
+    api.include_router(match.router)
     app.include_router(api)
     return app
 

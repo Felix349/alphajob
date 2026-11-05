@@ -13,7 +13,10 @@ dependencies = [
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.16.2",
     "pyjwt>=2.15.1",
+    "pymupdf>=2.1",
+    "python-multipart>=0.0.33",
     "sqlalchemy[asyncio]>=2.1.8",
+    "sse-starlette>=3.6.0",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -40,6 +43,10 @@ ignore = ["B008"]
 "alembic/versions/*" = ["E501"]
 # 提示词是自然语言长文本，不限制行长度
 "app/prompts/*" = ["E501"]
+# 匹配分析的字段描述同样是给模型看的提示词
+"app/schemas/match.py" = ["E501"]
+# 测试里的中文样例数据较长
+"tests/*" = ["E501"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
