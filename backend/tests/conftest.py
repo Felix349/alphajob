@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
-from app.core.db import get_db
+from app.core.db import get_db, get_session_factory
 from app.main import app
 from app.models import Base
 
@@ -41,9 +41,15 @@ async def _override_get_db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+def _use_test_db() -> None:
+    app.dependency_overrides[get_db] = _override_get_db
+    # 流式接口在生成器里自己开会话，也要指向测试库
+    app.dependency_overrides[get_session_factory] = lambda: TestSessionLocal
+
+
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
-    app.dependency_overrides[get_db] = _override_get_db
+    _use_test_db()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
@@ -70,7 +76,7 @@ async def make_client():
     clients: list[AsyncClient] = []
 
     async def _make() -> AsyncClient:
-        app.dependency_overrides[get_db] = _override_get_db
+        _use_test_db()
         c = AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
         clients.append(c)
         return c

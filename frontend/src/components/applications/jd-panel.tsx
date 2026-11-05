@@ -1,13 +1,60 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useParseJd, useUpdateApplication } from "@/hooks/use-applications";
 import type { ApplicationDetail } from "@/lib/api/applications";
+
+/** 新建投递时跳过了 JD：在这里补上，保存后顺便尝试智能解析（没配 Key 时只保存原文）。 */
+function AddJd({ appId }: { appId: string }) {
+  const [text, setText] = useState("");
+  const update = useUpdateApplication();
+  const parse = useParseJd();
+  const busy = update.isPending || parse.isPending;
+
+  function save() {
+    const jd = text.trim();
+    update.mutate(
+      { id: appId, data: { jd_text: jd } },
+      {
+        onSuccess: () =>
+          parse.mutate(jd, {
+            onSuccess: (result) =>
+              update.mutate(
+                { id: appId, data: { jd_parsed: result } },
+                { onSuccess: () => toast.success("JD 已保存并解析") },
+              ),
+            onError: () => toast.success("JD 已保存（智能解析暂不可用）"),
+          }),
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-muted-foreground">还没有 JD。粘贴进来，岗位匹配分析需要用到它。</p>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="把招聘页上的岗位描述整段复制到这里……"
+        className="min-h-32"
+        aria-label="岗位描述"
+      />
+      <div className="flex justify-end">
+        <Button size="sm" onClick={save} disabled={text.trim().length < 20 || busy}>
+          {busy ? "保存中…" : "保存 JD"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function JdPanel({ app }: { app: ApplicationDetail }) {
   const parse = useParseJd();
@@ -38,7 +85,7 @@ export function JdPanel({ app }: { app: ApplicationDetail }) {
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">
-        {!app.jd_text && <p className="text-muted-foreground">没有保存 JD 原文。</p>}
+        {!app.jd_text && <AddJd appId={app.id} />}
         {parsed && (
           <>
             <p className="rounded-lg bg-muted/50 p-3 font-medium">{parsed.summary}</p>

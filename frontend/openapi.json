@@ -624,6 +624,413 @@
           }
         }
       }
+    },
+    "/api/resume": {
+      "get": {
+        "tags": [
+          "resume"
+        ],
+        "summary": "Get Resume",
+        "description": "还没有简历时返回 null（而不是 404）：“没有简历”是正常状态，不是错误。",
+        "operationId": "resume-get_resume",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ResumeOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Resume-Get Resume"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "resume"
+        ],
+        "summary": "Save Resume",
+        "operationId": "resume-save_resume",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "resume"
+        ],
+        "summary": "Delete Resume",
+        "operationId": "resume-delete_resume",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/resume/upload": {
+      "post": {
+        "tags": [
+          "resume"
+        ],
+        "summary": "Upload Resume",
+        "description": "上传 PDF / Markdown / 文本文件，提取成文本后保存。原文件不保存，只保存提取出的文本。",
+        "operationId": "resume-upload_resume",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_resume-upload_resume"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{app_id}/match-report": {
+      "get": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Get Match Report",
+        "operationId": "match-get_match_report",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MatchReportOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Match-Get Match Report"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Create Match Report",
+        "description": "生成匹配分析，以 SSE 流式返回。\n\n事件：delta（模型输出的 JSON 片段，前端边收边渲染）、reset（结果作废、正在修正）、\ndone（保存好的最终结果）、error（失败原因）。",
+        "operationId": "match-create_match_report",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE 事件流",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applications/{app_id}/prep-items": {
+      "get": {
+        "tags": [
+          "match"
+        ],
+        "summary": "List Prep Items",
+        "operationId": "match-list_prep_items",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrepItemOut"
+                  },
+                  "title": "Response Match-List Prep Items"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Create Prep Item",
+        "operationId": "match-create_prep_item",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepItemCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepItemOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/prep-items/{item_id}": {
+      "patch": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Update Prep Item",
+        "operationId": "match-update_prep_item",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepItemUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrepItemOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "match"
+        ],
+        "summary": "Delete Prep Item",
+        "operationId": "match-delete_prep_item",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1123,6 +1530,20 @@
         "title": "ApplicationUpdate",
         "description": "PATCH：只更新请求里出现的字段（exclude_unset）。拖拽改阶段也走这里。"
       },
+      "Body_resume-upload_resume": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_resume-upload_resume"
+      },
       "CalendarEventOut": {
         "properties": {
           "id": {
@@ -1462,6 +1883,127 @@
         ],
         "title": "LoginRequest"
       },
+      "MatchAnalysis": {
+        "properties": {
+          "score": {
+            "type": "integer",
+            "title": "Score",
+            "description": "整体匹配度，0–100 的整数。要克制：大部分要求都是 strong 才给 80 以上"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "一段话总评：这个岗位最看重什么、你的优势和最大的差距，不超过 120 字"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Highlights",
+            "description": "最值得在面试中重点讲的 2–5 个亮点，每条都要能对应到简历中的具体经历"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementMatch"
+            },
+            "type": "array",
+            "title": "Requirements",
+            "description": "逐条对照岗位的核心要求，5–10 条，按重要程度排序"
+          },
+          "prep_items": {
+            "items": {
+              "$ref": "#/components/schemas/PrepSuggestion"
+            },
+            "type": "array",
+            "title": "Prep Items",
+            "description": "备考清单，5–12 条，优先覆盖 missing 和 partial 的要求"
+          },
+          "interview_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Interview Questions",
+            "description": "结合 JD 和简历，最可能被问到的 3–8 个面试问题（包括针对简历经历的追问）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "summary",
+          "highlights",
+          "requirements",
+          "prep_items",
+          "interview_questions"
+        ],
+        "title": "MatchAnalysis"
+      },
+      "MatchReportOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "application_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Application Id"
+          },
+          "report": {
+            "$ref": "#/components/schemas/MatchAnalysis"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "resume_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Resume Updated At"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "application_id",
+          "report",
+          "model",
+          "created_at",
+          "resume_updated_at",
+          "stale"
+        ],
+        "title": "MatchReportOut"
+      },
+      "MatchRequest": {
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes",
+            "description": "可选：用户粘贴的面经、内推人透露的信息等"
+          }
+        },
+        "type": "object",
+        "title": "MatchRequest"
+      },
       "ParseJDRequest": {
         "properties": {
           "jd_text": {
@@ -1574,7 +2116,7 @@
             },
             "type": "array",
             "title": "Bonus",
-            "description": "加分项（优先考虑的条件）；没有则为空数组"
+            "description": "加分项（优先考虑的条件），最多 6 条；没有则为空数组"
           },
           "tech_stack": {
             "items": {
@@ -1582,7 +2124,7 @@
             },
             "type": "array",
             "title": "Tech Stack",
-            "description": "JD 中提到的具体技术、语言、框架或工具，例如 Python、PyTorch、Kubernetes"
+            "description": "JD 中明确出现的具体技术名词，最多 15 个：编程语言、框架、库、数据库、中间件、工具、平台，例如 Python、PyTorch、Kubernetes。不要列领域或概念（如 大模型、AI Agent、机器学习、推荐系统），也不要列泛称（如 Profiling 工具、深度学习框架）"
           },
           "summary": {
             "type": "string",
@@ -1606,6 +2148,171 @@
         ],
         "title": "ParsedJD",
         "description": "大模型从岗位描述（JD）中提取的结构化信息。\n\n这个模型同时是给大模型的输出格式（JSON Schema），所以每个字段都写清楚描述：\n描述就是给模型看的提示词。"
+      },
+      "PrepCategory": {
+        "type": "string",
+        "enum": [
+          "knowledge",
+          "project",
+          "question",
+          "other"
+        ],
+        "title": "PrepCategory"
+      },
+      "PrepItemCreate": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PrepCategory",
+            "default": "other"
+          },
+          "priority": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Priority",
+            "default": 2
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "PrepItemCreate"
+      },
+      "PrepItemOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "application_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Application Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PrepCategory"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "application_id",
+          "content",
+          "category",
+          "priority",
+          "done",
+          "source",
+          "created_at"
+        ],
+        "title": "PrepItemOut"
+      },
+      "PrepItemUpdate": {
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "title": "PrepItemUpdate"
+      },
+      "PrepSuggestion": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "一条具体、可执行、能在 1–3 天内完成的备考任务，以动词开头，例如“复习 Raft 选主流程并能画出时序图”"
+          },
+          "category": {
+            "$ref": "#/components/schemas/PrepCategory",
+            "description": "knowledge：知识点；project：项目经历的准备；question：刷题或练习题；other：其他"
+          },
+          "priority": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Priority",
+            "description": "1 最优先（直接对应 missing 的核心要求），3 最次要"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content",
+          "category",
+          "priority"
+        ],
+        "title": "PrepSuggestion"
       },
       "RegisterRequest": {
         "properties": {
@@ -1639,6 +2346,107 @@
           "password"
         ],
         "title": "RegisterRequest"
+      },
+      "RequirementMatch": {
+        "properties": {
+          "requirement": {
+            "type": "string",
+            "title": "Requirement",
+            "description": "岗位的一项核心要求，来自 JD，用一句话概括"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "strong",
+              "partial",
+              "missing"
+            ],
+            "title": "Level",
+            "description": "strong：简历中有明确、直接的证据；partial：有相关经历但不完全对口或深度不够；missing：简历中找不到依据"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence",
+            "description": "简历中支撑这项判断的依据，引用或概括简历原文（写清楚是哪段经历）。level 为 missing 时填 null。绝对不要编造简历里没有的内容"
+          },
+          "advice": {
+            "type": "string",
+            "title": "Advice",
+            "description": "具体建议：strong 写面试时怎么讲出亮点；partial / missing 写怎么在面试前补上或如何坦诚应对"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requirement",
+          "level",
+          "evidence",
+          "advice"
+        ],
+        "title": "RequirementMatch"
+      },
+      "ResumeIn": {
+        "properties": {
+          "content_md": {
+            "type": "string",
+            "maxLength": 30000,
+            "minLength": 20,
+            "title": "Content Md"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_md"
+        ],
+        "title": "ResumeIn"
+      },
+      "ResumeOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "content_md": {
+            "type": "string",
+            "title": "Content Md"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content_md",
+          "source",
+          "filename",
+          "updated_at"
+        ],
+        "title": "ResumeOut"
       },
       "Stage": {
         "type": "string",

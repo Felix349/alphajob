@@ -35,19 +35,26 @@ function extractMessage(body: unknown, status: number): string {
   return `请求失败（${status}）`;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** 发请求并在失败时抛出 ApiError。流式接口需要拿到原始 Response，所以单独导出。 */
+export async function apiRequest(path: string, init: RequestInit = {}): Promise<Response> {
   const res = await fetch(`/api${path}`, {
     ...init,
     credentials: "same-origin",
     headers: {
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      // 上传文件（FormData）时不能手动设置 Content-Type，浏览器会自动带上 multipart 边界
+      ...(typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
       ...init.headers,
     },
   });
+  if (!res.ok) {
+    const body: unknown = await res.json().catch(() => null);
+    throw new ApiError(res.status, extractMessage(body, res.status));
+  }
+  return res;
+}
 
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await apiRequest(path, init);
   if (res.status === 204) return undefined as T;
-
-  const body: unknown = await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, extractMessage(body, res.status));
-  return body as T;
+  return (await res.json().catch(() => null)) as T;
 }

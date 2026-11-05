@@ -1,6 +1,10 @@
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# 列表字段的条数上限。字段描述里也写了，但描述对模型只是“建议”，模型偶尔会多给。
+# 这里在校验时直接截断，而不是报错：多一两条不是错误，没必要为此重试一次、多花一次调用。
+LIST_LIMITS = {"responsibilities": 8, "requirements": 8, "bonus": 6, "tech_stack": 15}
 
 
 class ParsedJD(BaseModel):
@@ -18,11 +22,26 @@ class ParsedJD(BaseModel):
     deadline: date | None = Field(description="投递截止日期（YYYY-MM-DD）；没有则为 null")
     responsibilities: list[str] = Field(description="岗位职责，每条一句话，最多 8 条")
     requirements: list[str] = Field(description="任职要求（必须具备的条件），每条一句话，最多 8 条")
-    bonus: list[str] = Field(description="加分项（优先考虑的条件）；没有则为空数组")
+    bonus: list[str] = Field(description="加分项（优先考虑的条件），最多 6 条；没有则为空数组")
     tech_stack: list[str] = Field(
-        description="JD 中提到的具体技术、语言、框架或工具，例如 Python、PyTorch、Kubernetes"
+        description=(
+            "JD 中明确出现的具体技术名词，最多 15 个："
+            "编程语言、框架、库、数据库、中间件、工具、平台，例如 Python、PyTorch、Kubernetes。"
+            "不要列领域或概念（如 大模型、AI Agent、机器学习、推荐系统），"
+            "也不要列泛称（如 Profiling 工具、深度学习框架）"
+        )
     )
     summary: str = Field(description="用一句话概括这个岗位最看重什么，不超过 40 字")
+
+    @field_validator(*LIST_LIMITS, mode="after")
+    @classmethod
+    def truncate_lists(cls, value: list[str], info) -> list[str]:
+        # 去掉空白项和重复项（保持原顺序），再按上限截断
+        seen: dict[str, None] = {}
+        for item in value:
+            if (s := item.strip()) and s not in seen:
+                seen[s] = None
+        return list(seen)[: LIST_LIMITS[info.field_name]]
 
 
 class ParseJDRequest(BaseModel):
