@@ -6,9 +6,12 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.1",
     "anthropic>=2.4.0",
+    "arq>=0.28.0",
     "asyncpg>=0.32.0",
+    "dashscope>=2.0.3",
     "email-validator>=2.3.0",
     "fastapi>=0.162.0",
+    "imageio-ffmpeg>=0.8.1",
     "openai>=3.45.0",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.16.2",
@@ -45,6 +48,7 @@ ignore = ["B008"]
 "app/prompts/*" = ["E501"]
 # 匹配分析的字段描述同样是给模型看的提示词
 "app/schemas/match.py" = ["E501"]
+"app/schemas/interview.py" = ["E501"]
 # 测试里的中文样例数据较长
 "tests/*" = ["E501"]
 

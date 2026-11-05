@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-opus-5-5"
 
+    # ---- 语音转写（阿里云百炼）----
+    # 可选：百炼工作空间 ID。配置后走工作空间专属网关，更稳定；不配置则走公共网关
+    dashscope_workspace: str = ""
+    # 支持直接读取本地文件、时长不限的实时识别模型（录音文件识别类模型要求公网 URL，不适合本地部署）
+    asr_model: str = "paraformer-realtime-v2"
+
+    # ---- 文件存储 ----
+    upload_dir: Path = REPO_ROOT / "data" / "uploads"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
