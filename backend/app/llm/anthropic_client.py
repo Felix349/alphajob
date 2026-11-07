@@ -9,7 +9,19 @@ from collections.abc import AsyncIterator
 import anthropic
 from pydantic import BaseModel, ValidationError
 
-from app.llm.base import Effort, LLMError, StreamDone, StreamEvent, StructuredResult, TextDelta
+from app.llm.base import (
+    AssistantTurn,
+    ChatMessage,
+    Effort,
+    LLMError,
+    StreamDone,
+    StreamEvent,
+    StructuredResult,
+    TextDelta,
+    ToolCall,
+    ToolResult,
+    ToolSpec,
+)
 
 # 安全分类器误判拒答时，由服务端自动换模型重试
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
@@ -35,7 +47,7 @@ def _result[T: BaseModel](resp) -> StructuredResult[T]:
     if resp.stop_reason == "refusal":
         raise LLMError("模型拒绝处理这段内容")
     if resp.stop_reason == "max_tokens":
-        raise LLMError("模型输出被截断，请缩短输入内容后重试")
+        raise LLMError("模型输出超出长度上限被截断，请重试")
     if resp.parsed_output is None:
         raise LLMError("Claude 没有返回结构化结果")
     return StructuredResult(
@@ -83,6 +95,11 @@ class AnthropicClient:
             raise _error(exc) from exc
         return _result(resp)
 
+    def tool_session(
+        self, *, system: str, history: list[ChatMessage], tools: list[ToolSpec]
+    ) -> "AnthropicToolSession":
+        return AnthropicToolSession(self, system, history, tools)
+
     async def stream_structured[T: BaseModel](
         self,
         *,
@@ -102,3 +119,73 @@ class AnthropicClient:
         except (anthropic.AnthropicError, ValidationError) as exc:
             raise _error(exc) from exc
         yield StreamDone(_result(final))
+
+
+class AnthropicToolSession:
+    """Claude 的工具对话。必须遵守两条规则：
+
+    1. 助手回复的 content 要原样追加回历史：里面有思考块，改动或删掉会导致后续请求报错、丢失推理；
+    2. 同一轮里所有工具的结果，要放在“同一条”用户消息里一起回传。
+    """
+
+    def __init__(
+        self,
+        client: AnthropicClient,
+        system: str,
+        history: list[ChatMessage],
+        tools: list[ToolSpec],
+    ):
+        self._client = client
+        self._system = system
+        self._tools = [
+            {"name": t.name, "description": t.description, "input_schema": t.parameters}
+            for t in tools
+        ]
+        self._messages: list[dict] = [{"role": m.role, "content": m.content} for m in history]
+
+    async def step(self) -> AssistantTurn:
+        try:
+            resp = await self._client._client.beta.messages.create(
+                model=self._client.model,
+                max_tokens=16000,
+                system=self._system,
+                messages=self._messages,
+                tools=self._tools,
+                output_config={"effort": "medium"},
+                betas=[FALLBACK_BETA],
+                fallbacks="default",
+            )
+        except anthropic.AnthropicError as exc:
+            raise _error(exc) from exc
+        if resp.stop_reason == "refusal":
+            raise LLMError("模型拒绝处理这个请求")
+        if resp.stop_reason == "max_tokens":
+            raise LLMError("模型输出被截断")
+
+        self._messages.append({"role": "assistant", "content": resp.content})  # 原样回传
+        return AssistantTurn(
+            text="".join(b.text for b in resp.content if b.type == "text"),
+            tool_calls=[
+                ToolCall(b.id, b.name, b.input if isinstance(b.input, dict) else {})
+                for b in resp.content
+                if b.type == "tool_use"
+            ],
+            input_tokens=resp.usage.input_tokens,
+            output_tokens=resp.usage.output_tokens,
+        )
+
+    def add_tool_results(self, results: list[ToolResult]) -> None:
+        self._messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": r.call_id,
+                        "content": r.content,
+                        "is_error": r.is_error,
+                    }
+                    for r in results
+                ],
+            }
+        )

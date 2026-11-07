@@ -1,6 +1,7 @@
 """岗位匹配分析（SSE 流式）与备考清单。大模型全部用假实现。"""
 
 import json
+import uuid
 
 import pytest
 from sqlalchemy import select
@@ -8,8 +9,8 @@ from sqlalchemy import select
 from app.api.deps import require_llm
 from app.llm import LLMError, StreamDone, StreamReset, StructuredResult, TextDelta
 from app.main import app
-from app.models import LLMCallLog
-from app.schemas.match import MatchAnalysis
+from app.models import LLMCallLog, MatchReport
+from app.schemas.match import MatchAnalysis, RequirementMatch, compute_score
 from tests.conftest import TestSessionLocal
 
 RESUME = "# 张三\n硕士，研究方向 LLM Agent。\n项目：用 LangGraph 搭建多 Agent 论文助手，支持工具调用与长期记忆。"
@@ -17,18 +18,19 @@ JD = "Agent 开发工程师（校招）。要求：熟悉 Python；理解 Planni
 
 ANALYSIS = MatchAnalysis.model_validate(
     {
-        "score": 72,
         "summary": "Agent 方向对口，RAG 工程经验不足。",
         "highlights": ["LangGraph 多 Agent 项目"],
         "requirements": [
             {
                 "requirement": "理解 Agent 机制",
+                "importance": "required",
                 "level": "strong",
                 "evidence": "LangGraph 多 Agent 论文助手",
                 "advice": "讲清记忆模块设计",
             },
             {
                 "requirement": "RAG 经验",
+                "importance": "preferred",  # JD：有 RAG 经验优先
                 "level": "missing",
                 "evidence": None,
                 "advice": "做一个小型 RAG Demo",
@@ -39,6 +41,15 @@ ANALYSIS = MatchAnalysis.model_validate(
             {"content": "动手实现一个最小 RAG", "category": "knowledge", "priority": 1},
         ],
         "interview_questions": ["你的记忆模块怎么做淘汰？"],
+        "resume_edits": [
+            {
+                "section": "项目经历：多 Agent 论文助手",
+                "original": "项目：用 LangGraph 搭建多 Agent 论文助手，支持工具调用与长期记忆。",
+                "suggestion": "基于 LangGraph 设计多 Agent 论文助手，实现 Tool Use 与长期 Memory，"
+                "支撑【待补充：处理论文数量】篇论文的检索与总结",
+                "reason": "JD 点名 Tool Use 和 Memory，用 JD 的关键词描述已有经历",
+            },
+        ],
     }
 )
 
@@ -52,6 +63,7 @@ class FakeStreamLLM:
 
     async def stream_structured(self, *, system, user, schema, effort="medium", max_tokens=8192):
         self.prompts.append(user)
+        self.max_tokens = max_tokens
         text = self.analysis.model_dump_json()
         for i in range(0, len(text), 40):  # 模拟逐段生成
             yield TextDelta(text[i : i + 40])
@@ -84,11 +96,14 @@ async def setup_app(client, *, resume=True, jd=True) -> str:
     return (await client.post("/api/applications", json=body)).json()["id"]
 
 
-async def run_match(client, app_id: str, notes: str | None = None) -> list[tuple[str, dict]]:
+async def run_match(
+    client, app_id: str, notes: str | None = None, resume_language: str | None = None
+) -> list[tuple[str, dict]]:
     """调用 SSE 接口，把事件流解析成 [(事件名, 数据)]。sse-starlette 默认用 \\r\\n 分隔。"""
     events = []
     url = f"/api/applications/{app_id}/match-report"
-    async with client.stream("POST", url, json={"notes": notes}) as resp:
+    body = {"notes": notes, "resume_language": resume_language}
+    async with client.stream("POST", url, json=body) as resp:
         assert resp.status_code == 200, await resp.aread()
         assert resp.headers["content-type"].startswith("text/event-stream")
         buffer = ""
@@ -144,10 +159,12 @@ async def test_stream_emits_deltas_then_done_and_persists(alice, use_llm):
     assert names[-1] == "done" and names.count("delta") > 3
     # 把所有片段拼起来，就是模型输出的完整 JSON
     streamed = "".join(d["text"] for n, d in events if n == "delta")
-    assert json.loads(streamed)["score"] == 72
+    assert json.loads(streamed)["summary"].startswith("Agent")
 
     done = events[-1][1]
-    assert done["report"]["score"] == 72 and done["stale"] is False
+    # (必备 strong 100×2 + 加分项 missing 0×1) / 3 = 66.7 → 67
+    assert done["report"]["score"] == 67 and done["stale"] is False
+    assert fake.max_tokens == 16384  # 输出很长，不能用默认的 8192
     prompt = fake.prompts[0]
     assert (
         "<resume>" in prompt and "LangGraph" in prompt and "<notes>" in prompt and "ReAct" in prompt
@@ -210,6 +227,80 @@ async def test_regenerate_keeps_done_and_manual_items(alice, use_llm):
     assert len(after) == 1 + 1 + 2  # 手动 1 + 已完成 1 + 新生成 2（未完成的旧 AI 条目被替换）
 
 
+# ---------- 中文 / 英文简历 ----------
+
+EN_RESUME = (
+    "# Zhang San\nM.S. in CS. Built a multi-agent research assistant with LangGraph and tool use."
+)
+EN_JD = (
+    "Software Engineer, AI Agents. Requirements: strong Python; experience with LLM tool use, "
+    "planning and memory; RAG experience is a plus."
+)
+
+
+async def add_app(client, jd: str) -> str:
+    body = {"company": "Northstar", "role": "Agent Engineer", "jd_text": jd}
+    return (await client.post("/api/applications", json=body)).json()["id"]
+
+
+async def test_auto_picks_resume_by_jd_language(alice, use_llm):
+    fake = use_llm(FakeStreamLLM())
+    await alice.put("/api/resume", json={"content_md": RESUME})
+    await alice.put("/api/resume?language=en", json={"content_md": EN_RESUME})
+
+    en_done = (await run_match(alice, await add_app(alice, EN_JD)))[-1][1]
+    zh_done = (await run_match(alice, await add_app(alice, JD)))[-1][1]
+
+    assert en_done["resume_language"] == "en" and "Zhang San" in fake.prompts[0]
+    assert zh_done["resume_language"] == "zh" and "张三" in fake.prompts[1]
+
+
+async def test_auto_falls_back_to_the_only_resume(alice, use_llm):
+    fake = use_llm(FakeStreamLLM())
+    await alice.put("/api/resume", json={"content_md": RESUME})  # 只有中文简历
+    done = (await run_match(alice, await add_app(alice, EN_JD)))[-1][1]
+    assert done["resume_language"] == "zh" and "张三" in fake.prompts[0]
+
+
+async def test_explicit_language_overrides_auto_and_must_exist(alice, use_llm):
+    fake = use_llm(FakeStreamLLM())
+    await alice.put("/api/resume", json={"content_md": RESUME})
+    app_id = await add_app(alice, EN_JD)
+
+    url = f"/api/applications/{app_id}/match-report"
+    resp = await alice.post(url, json={"resume_language": "en"})
+    assert resp.status_code == 400 and "英文简历" in resp.json()["detail"]
+
+    await alice.put("/api/resume?language=en", json={"content_md": EN_RESUME})
+    done = (await run_match(alice, app_id, resume_language="zh"))[-1][1]
+    assert done["resume_language"] == "zh" and "张三" in fake.prompts[0]
+
+
+async def test_stale_only_tracks_the_resume_that_was_used(alice, use_llm):
+    use_llm(FakeStreamLLM())
+    await alice.put("/api/resume", json={"content_md": RESUME})
+    await alice.put("/api/resume?language=en", json={"content_md": EN_RESUME})
+    app_id = await add_app(alice, EN_JD)
+    await run_match(alice, app_id)  # 用的是英文简历
+    url = f"/api/applications/{app_id}/match-report"
+
+    await alice.put("/api/resume", json={"content_md": RESUME + "\n新增：RAG 实习经历"})
+    assert (await alice.get(url)).json()["stale"] is False  # 改中文简历不影响
+
+    await alice.put("/api/resume?language=en", json={"content_md": EN_RESUME + "\nRAG intern."})
+    assert (await alice.get(url)).json()["stale"] is True
+
+
+def test_jd_language_detection():
+    from app.models import Application
+    from app.services.match import jd_language
+
+    assert jd_language(Application(jd_text=EN_JD)) == "en"
+    assert jd_language(Application(jd_text=JD)) == "zh"  # 中文里夹着 Python、RAG 仍是中文
+    assert jd_language(Application(jd_text=None, jd_parsed={"skills": ["Python", "RAG"]})) == "en"
+    assert jd_language(Application(jd_text=None, jd_parsed={"title": "后端开发"})) == "zh"
+
+
 # ---------- 备考清单 ----------
 
 
@@ -246,9 +337,68 @@ async def test_prep_item_validation(alice):
 # ---------- 输出格式的兜底 ----------
 
 
-def test_analysis_clamps_score_and_truncates_lists():
+def test_analysis_truncates_lists():
     data = ANALYSIS.model_dump()
-    data["score"] = 130
     data["interview_questions"] = [f"问题 {i}" for i in range(20)]
+    data["resume_edits"] = data["resume_edits"] * 12
     parsed = MatchAnalysis.model_validate(data)
-    assert parsed.score == 100 and len(parsed.interview_questions) == 8
+    assert len(parsed.interview_questions) == 8 and len(parsed.resume_edits) == 8
+
+
+def _req(importance: str, level: str) -> RequirementMatch:
+    return RequirementMatch(
+        requirement="x", importance=importance, level=level, evidence=None, advice="y"
+    )
+
+
+@pytest.mark.parametrize(
+    ("reqs", "expected"),
+    [
+        ([], 0),
+        ([("required", "strong")] * 3, 100),
+        ([("required", "missing")] * 3, 0),
+        ([("required", "partial")], 50),
+        # 必备要求权重是加分项的两倍：(100×2 + 0×1) / 3 = 66.7
+        ([("required", "strong"), ("preferred", "missing")], 67),
+        ([("required", "missing"), ("preferred", "strong")], 33),
+        # 四舍五入而不是银行家舍入：(50×1 + 0×1 + 100×2) / 4 = 62.5 → 63
+        ([("preferred", "partial"), ("preferred", "missing"), ("required", "strong")], 63),
+    ],
+)
+def test_score_is_computed_by_rule(reqs, expected):
+    assert compute_score([_req(i, lv) for i, lv in reqs]) == expected
+
+
+def test_model_cannot_set_score_and_schema_does_not_ask_for_it():
+    data = ANALYSIS.model_dump()
+    data["score"] = 99  # 模型自作主张给的分数被忽略
+    assert MatchAnalysis.model_validate(data).score == 67
+    # 发给模型的 Schema 里没有 score，模型就不会去打分
+    assert "score" not in MatchAnalysis.model_json_schema()["properties"]
+
+
+def test_old_reports_are_rescored_with_current_rule():
+    """旧数据：没有 importance、score 是模型给的。读取时都当作必备要求，按规则重新计算。"""
+    raw = ANALYSIS.model_dump(mode="json")
+    raw["score"] = 90
+    for r in raw["requirements"]:
+        del r["importance"]
+    del raw["resume_edits"]
+    loaded = MatchAnalysis.from_stored(raw)
+    assert loaded.score == 50 and loaded.resume_edits == []
+
+
+async def test_resume_edits_are_returned_and_old_reports_still_load(alice, use_llm):
+    use_llm(FakeStreamLLM())
+    app_id = await setup_app(alice)
+    done = (await run_match(alice, app_id))[-1][1]
+    [edit] = done["report"]["resume_edits"]
+    assert edit["original"].startswith("项目：") and "【待补充" in edit["suggestion"]
+
+    # 模拟加这个字段之前存下的旧分析：读取时不报错，补成空列表
+    async with TestSessionLocal() as s:
+        report = await s.get(MatchReport, uuid.UUID(done["id"]))
+        report.report = {k: v for k, v in report.report.items() if k != "resume_edits"}
+        await s.commit()
+    saved = (await alice.get(f"/api/applications/{app_id}/match-report")).json()
+    assert saved["report"]["resume_edits"] == []

@@ -7,7 +7,9 @@ type S = components["schemas"];
 
 export type MatchAnalysis = S["MatchAnalysis"];
 export type MatchReport = S["MatchReportOut"];
+export type MatchRequest = S["MatchRequest"];
 export type RequirementMatch = S["RequirementMatch"];
+export type ResumeEdit = S["ResumeEdit"];
 export type PrepItem = S["PrepItemOut"];
 export type PrepItemCreate = S["PrepItemCreate"];
 export type PrepItemUpdate = S["PrepItemUpdate"];
@@ -35,14 +37,14 @@ export type StreamHandlers = {
 /** 生成匹配分析：POST 请求，以 SSE 流式接收。失败时抛出 ApiError。 */
 export async function streamMatch(
   appId: string,
-  notes: string | null,
+  request: MatchRequest,
   handlers: StreamHandlers,
   signal: AbortSignal,
 ): Promise<void> {
   // 开始前的检查（没有简历、没有 JD）失败时，后端返回普通的 400，这里会抛出 ApiError
   const res = await apiRequest(`/applications/${appId}/match-report`, {
     method: "POST",
-    body: JSON.stringify({ notes }),
+    body: JSON.stringify(request),
     headers: { Accept: "text/event-stream" },
     signal,
   });

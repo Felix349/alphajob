@@ -633,6 +633,24 @@
         "summary": "Get Resume",
         "description": "还没有简历时返回 null（而不是 404）：“没有简历”是正常状态，不是错误。",
         "operationId": "resume-get_resume",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "zh",
+                "en"
+              ],
+              "type": "string",
+              "description": "zh：中文简历；en：英文简历",
+              "default": "zh",
+              "title": "Language"
+            },
+            "description": "zh：中文简历；en：英文简历"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -651,6 +669,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
@@ -660,15 +688,33 @@
         ],
         "summary": "Save Resume",
         "operationId": "resume-save_resume",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "zh",
+                "en"
+              ],
+              "type": "string",
+              "description": "zh：中文简历；en：英文简历",
+              "default": "zh",
+              "title": "Language"
+            },
+            "description": "zh：中文简历；en：英文简历"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ResumeIn"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -699,9 +745,37 @@
         ],
         "summary": "Delete Resume",
         "operationId": "resume-delete_resume",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "zh",
+                "en"
+              ],
+              "type": "string",
+              "description": "zh：中文简历；en：英文简历",
+              "default": "zh",
+              "title": "Language"
+            },
+            "description": "zh：中文简历；en：英文简历"
+          }
+        ],
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -714,15 +788,33 @@
         "summary": "Upload Resume",
         "description": "上传 PDF / Markdown / 文本文件，提取成文本后保存。原文件不保存，只保存提取出的文本。",
         "operationId": "resume-upload_resume",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "zh",
+                "en"
+              ],
+              "type": "string",
+              "description": "zh：中文简历；en：英文简历",
+              "default": "zh",
+              "title": "Language"
+            },
+            "description": "zh：中文简历；en：英文简历"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_resume-upload_resume"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1428,10 +1520,344 @@
           }
         }
       }
+    },
+    "/api/agent/chat": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Chat",
+        "description": "和求职 Agent 对话，以 SSE 推送每一步：thinking（模型的过渡语）、tool_call、tool_result、\nproposal（待确认的写操作）、message（最终回答）、error。",
+        "operationId": "agent-chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "SSE 事件流",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/actions/{action_id}/confirm": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Confirm Action",
+        "operationId": "agent-confirm_action",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentActionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/actions/{action_id}/cancel": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Cancel Action",
+        "operationId": "agent-cancel_action",
+        "parameters": [
+          {
+            "name": "action_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Action Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentActionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/plan": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Get Plan",
+        "description": "当天（本周）最新的一份计划；还没生成或已经过期时返回 null。",
+        "operationId": "agent-get_plan",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "today",
+                "week"
+              ],
+              "type": "string",
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Timezone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PlanOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Agent-Get Plan"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Create Plan",
+        "operationId": "agent-create_plan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/plan/{plan_id}": {
+      "patch": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Toggle Plan Item",
+        "operationId": "agent-toggle_plan_item",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanItemToggle"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AgentActionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "done",
+              "cancelled",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tool",
+          "description",
+          "status",
+          "result"
+        ],
+        "title": "AgentActionOut"
+      },
       "ApplicationCreate": {
         "properties": {
           "company": {
@@ -2077,6 +2503,62 @@
         "title": "CalendarEventOut",
         "description": "日历视图用：带上所属投递的公司和岗位，前端不用再单独请求。"
       },
+      "ChatMessageIn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessageIn"
+      },
+      "ChatRequest": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageIn"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Messages"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone",
+            "description": "浏览器时区，如 Asia/Shanghai"
+          }
+        },
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "title": "ChatRequest",
+        "description": "对话历史由前端保存并整段发来：服务端不存聊天记录，实现简单，也不必考虑多设备同步。"
+      },
       "EventCreate": {
         "properties": {
           "type": {
@@ -2651,11 +3133,6 @@
       },
       "MatchAnalysis": {
         "properties": {
-          "score": {
-            "type": "integer",
-            "title": "Score",
-            "description": "整体匹配度，0–100 的整数。要克制：大部分要求都是 strong 才给 80 以上"
-          },
           "summary": {
             "type": "string",
             "title": "Summary",
@@ -2675,7 +3152,7 @@
             },
             "type": "array",
             "title": "Requirements",
-            "description": "逐条对照岗位的核心要求，5–10 条，按重要程度排序"
+            "description": "逐条对照岗位要求，5–8 条：先列必备要求，再列加分项，各自按重要程度排序；相近的要求合并成一条"
           },
           "prep_items": {
             "items": {
@@ -2683,7 +3160,7 @@
             },
             "type": "array",
             "title": "Prep Items",
-            "description": "备考清单，5–12 条，优先覆盖 missing 和 partial 的要求"
+            "description": "备考清单，5–10 条，优先覆盖 missing 和 partial 的要求"
           },
           "interview_questions": {
             "items": {
@@ -2692,16 +3169,31 @@
             "type": "array",
             "title": "Interview Questions",
             "description": "结合 JD 和简历，最可能被问到的 3–8 个面试问题（包括针对简历经历的追问）"
+          },
+          "resume_edits": {
+            "items": {
+              "$ref": "#/components/schemas/ResumeEdit"
+            },
+            "type": "array",
+            "title": "Resume Edits",
+            "description": "针对这个岗位的简历修改建议，3–6 条，按收益从高到低排序：把和 JD 相关的经历写得更突出、用 JD 里的关键词描述已有的经历、补上缺失的量化结果、删减或弱化无关内容"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score",
+            "description": "匹配度 0–100，由 requirements 按固定规则计算（见 compute_score）",
+            "readOnly": true
           }
         },
         "type": "object",
         "required": [
-          "score",
           "summary",
           "highlights",
           "requirements",
           "prep_items",
-          "interview_questions"
+          "interview_questions",
+          "resume_edits",
+          "score"
         ],
         "title": "MatchAnalysis"
       },
@@ -2734,6 +3226,14 @@
             "format": "date-time",
             "title": "Resume Updated At"
           },
+          "resume_language": {
+            "type": "string",
+            "enum": [
+              "zh",
+              "en"
+            ],
+            "title": "Resume Language"
+          },
           "stale": {
             "type": "boolean",
             "title": "Stale"
@@ -2747,6 +3247,7 @@
           "model",
           "created_at",
           "resume_updated_at",
+          "resume_language",
           "stale"
         ],
         "title": "MatchReportOut"
@@ -2765,6 +3266,22 @@
             ],
             "title": "Notes",
             "description": "可选：用户粘贴的面经、内推人透露的信息等"
+          },
+          "resume_language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "zh",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Language",
+            "description": "用哪份简历分析：zh / en；不填则自动选择（英文 JD 优先用英文简历）"
           }
         },
         "type": "object",
@@ -2914,6 +3431,109 @@
         ],
         "title": "ParsedJD",
         "description": "大模型从岗位描述（JD）中提取的结构化信息。\n\n这个模型同时是给大模型的输出格式（JSON Schema），所以每个字段都写清楚描述：\n描述就是给模型看的提示词。"
+      },
+      "PlanItemToggle": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Index"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "done"
+        ],
+        "title": "PlanItemToggle"
+      },
+      "PlanOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "today",
+              "week"
+            ],
+            "title": "Kind"
+          },
+          "plan_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Plan Date"
+          },
+          "plan": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Plan"
+          },
+          "done_items": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Done Items"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "plan_date",
+          "plan",
+          "done_items",
+          "model",
+          "created_at"
+        ],
+        "title": "PlanOut"
+      },
+      "PlanRequest": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "today",
+              "week"
+            ],
+            "title": "Kind"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "PlanRequest"
       },
       "PrepCategory": {
         "type": "string",
@@ -3298,7 +3918,16 @@
           "requirement": {
             "type": "string",
             "title": "Requirement",
-            "description": "岗位的一项核心要求，来自 JD，用一句话概括"
+            "description": "岗位的一项要求，来自 JD，用一句话概括"
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "required",
+              "preferred"
+            ],
+            "title": "Importance",
+            "description": "required：必备要求（JD 里的“任职要求”“必须”“熟悉”等）；preferred：加分项（JD 里的“优先”“加分”“者更佳”“nice to have”“is a plus”等）"
           },
           "level": {
             "type": "string",
@@ -3331,11 +3960,51 @@
         "type": "object",
         "required": [
           "requirement",
+          "importance",
           "level",
           "evidence",
           "advice"
         ],
         "title": "RequirementMatch"
+      },
+      "ResumeEdit": {
+        "properties": {
+          "section": {
+            "type": "string",
+            "title": "Section",
+            "description": "改的是简历哪一部分，例如“项目经历：多 Agent 论文助手”“技能”“个人总结”"
+          },
+          "original": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original",
+            "description": "要修改的简历原句，逐字引用简历原文；如果是建议新增一句（原来没有），填 null"
+          },
+          "suggestion": {
+            "type": "string",
+            "title": "Suggestion",
+            "description": "修改后的写法，可以直接替换进简历。用简历本身的语言写（英文简历就写英文）。只能重新组织、强调简历里已有的事实；需要求职者补充的信息（如数据量、提升幅度）用【待补充：……】占位，绝不能编造数字或经历"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "为什么这样改：对应 JD 的哪项要求、改了之后好在哪里"
+          }
+        },
+        "type": "object",
+        "required": [
+          "section",
+          "original",
+          "suggestion",
+          "reason"
+        ],
+        "title": "ResumeEdit"
       },
       "ResumeIn": {
         "properties": {
@@ -3358,6 +4027,14 @@
             "type": "string",
             "format": "uuid",
             "title": "Id"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "zh",
+              "en"
+            ],
+            "title": "Language"
           },
           "content_md": {
             "type": "string",
@@ -3387,6 +4064,7 @@
         "type": "object",
         "required": [
           "id",
+          "language",
           "content_md",
           "source",
           "filename",

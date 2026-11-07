@@ -7,6 +7,8 @@ import openai
 from pydantic import BaseModel, ValidationError
 
 from app.llm.base import (
+    AssistantTurn,
+    ChatMessage,
     Effort,
     LLMError,
     StreamDone,
@@ -14,6 +16,9 @@ from app.llm.base import (
     StreamReset,
     StructuredResult,
     TextDelta,
+    ToolCall,
+    ToolResult,
+    ToolSpec,
 )
 
 # 校验失败时把错误信息反馈给模型重试的次数
@@ -83,7 +88,7 @@ class OpenAICompatibleClient:
             choice = resp.choices[0]
             content = choice.message.content or ""
             if choice.finish_reason == "length":
-                raise LLMError("模型输出被截断，请缩短输入内容后重试")
+                raise LLMError("模型输出超出长度上限被截断，请重试")
 
             try:
                 data = schema.model_validate_json(content)
@@ -107,6 +112,11 @@ class OpenAICompatibleClient:
             )
 
         raise AssertionError("unreachable")
+
+    def tool_session(
+        self, *, system: str, history: list[ChatMessage], tools: list[ToolSpec]
+    ) -> "OpenAIToolSession":
+        return OpenAIToolSession(self, system, history, tools)
 
     async def stream_structured[T: BaseModel](
         self,
@@ -148,7 +158,7 @@ class OpenAICompatibleClient:
             raise self._error(exc) from exc
 
         if finish_reason == "length":
-            raise LLMError("模型输出被截断，请缩短输入内容后重试")
+            raise LLMError("模型输出超出长度上限被截断，请重试")
 
         content = "".join(parts)
         try:
@@ -183,3 +193,85 @@ class OpenAICompatibleClient:
                 output_tokens=usage.completion_tokens if usage else 0,
             )
         )
+
+
+class OpenAIToolSession:
+    """OpenAI 兼容接口的工具对话：助手消息里带 tool_calls，结果用 role=tool 的消息逐条回传。"""
+
+    def __init__(
+        self,
+        client: OpenAICompatibleClient,
+        system: str,
+        history: list[ChatMessage],
+        tools: list[ToolSpec],
+    ):
+        self._client = client
+        self._tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.name,
+                    "description": t.description,
+                    "parameters": t.parameters,
+                },
+            }
+            for t in tools
+        ]
+        self._messages: list[dict] = [{"role": "system", "content": system}]
+        self._messages += [{"role": m.role, "content": m.content} for m in history]
+
+    async def step(self) -> AssistantTurn:
+        try:
+            resp = await self._client._client.chat.completions.create(
+                model=self._client.model,
+                messages=self._messages,  # type: ignore[arg-type]
+                tools=self._tools,  # type: ignore[arg-type]
+                tool_choice="auto",
+                temperature=TEMPERATURE_BY_EFFORT["medium"],
+                max_tokens=4096,
+            )
+        except openai.OpenAIError as exc:
+            raise self._client._error(exc) from exc
+
+        choice = resp.choices[0]
+        if choice.finish_reason == "length":
+            raise LLMError("模型输出被截断")
+        msg = choice.message
+        raw_calls = msg.tool_calls or []
+        calls = [self._parse_call(tc) for tc in raw_calls]
+
+        # 原样记录助手消息（包括 tool_calls）：下一轮请求时，模型才知道自己调用过什么
+        assistant: dict = {"role": "assistant", "content": msg.content or ""}
+        if raw_calls:
+            assistant["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in raw_calls
+            ]
+        self._messages.append(assistant)
+
+        usage = resp.usage
+        return AssistantTurn(
+            text=msg.content or "",
+            tool_calls=calls,
+            input_tokens=usage.prompt_tokens if usage else 0,
+            output_tokens=usage.completion_tokens if usage else 0,
+        )
+
+    @staticmethod
+    def _parse_call(tc) -> ToolCall:
+        try:
+            args = json.loads(tc.function.arguments or "{}")
+        except json.JSONDecodeError as exc:
+            return ToolCall(tc.id, tc.function.name, {}, f"参数不是合法的 JSON：{exc}")
+        if not isinstance(args, dict):
+            return ToolCall(tc.id, tc.function.name, {}, "参数必须是 JSON 对象")
+        return ToolCall(tc.id, tc.function.name, args)
+
+    def add_tool_results(self, results: list[ToolResult]) -> None:
+        for r in results:
+            content = f"[错误] {r.content}" if r.is_error else r.content
+            self._messages.append({"role": "tool", "tool_call_id": r.call_id, "content": content})

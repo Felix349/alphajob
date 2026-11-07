@@ -34,6 +34,8 @@ class MatchReport(IdMixin, TimestampMixin, Base):
     model: Mapped[str] = mapped_column(String(128))
     # 分析时所用简历的更新时间：之后简历再改过，就提示“简历已更新，建议重新分析”
     resume_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # 这份分析用的是哪份简历（中文 / 英文）：判断“简历更新过”时，要对比同一份简历
+    resume_language: Mapped[str] = mapped_column(String(8), default="zh", server_default="zh")
 
 
 class PrepItem(IdMixin, TimestampMixin, Base):

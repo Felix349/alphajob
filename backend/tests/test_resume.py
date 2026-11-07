@@ -93,6 +93,39 @@ async def test_delete_resume(alice):
     assert (await alice.get("/api/resume")).json() is None
 
 
+EN_RESUME_MD = (
+    "# Zhang San\n\n## Education\nM.S. in Computer Science\n\n## Skills\nPython, LangGraph"
+)
+
+
+async def test_chinese_and_english_resumes_are_separate_slots(alice):
+    zh = (await alice.put("/api/resume", json={"content_md": RESUME_MD})).json()
+    en = (await alice.put("/api/resume?language=en", json={"content_md": EN_RESUME_MD})).json()
+    assert zh["language"] == "zh" and en["language"] == "en" and zh["id"] != en["id"]
+
+    assert (await alice.get("/api/resume")).json()["content_md"].startswith("# 张三")
+    assert (await alice.get("/api/resume?language=en")).json()["content_md"].startswith("# Zhang")
+
+    # 删掉英文简历，中文简历不受影响
+    assert (await alice.delete("/api/resume?language=en")).status_code == 204
+    assert (await alice.get("/api/resume?language=en")).json() is None
+    assert (await alice.get("/api/resume")).json()["id"] == zh["id"]
+
+
+async def test_upload_into_english_slot(alice):
+    resp = await alice.post(
+        "/api/resume/upload?language=en",
+        files={"file": ("resume-en.md", EN_RESUME_MD.encode("utf-8"), "text/markdown")},
+    )
+    assert resp.status_code == 200 and resp.json()["language"] == "en"
+    assert (await alice.get("/api/resume")).json() is None  # 中文栏位仍然是空的
+
+
+async def test_rejects_unknown_language(alice):
+    resp = await alice.put("/api/resume?language=fr", json={"content_md": RESUME_MD})
+    assert resp.status_code == 422
+
+
 async def test_pdf_line_wraps_do_not_insert_spaces_into_chinese(alice):
     """PDF 换行处不应在中文之间多出空格，但行内原有的空格（如“大学 专业 学历”）要保留。"""
     doc = pymupdf.open()
