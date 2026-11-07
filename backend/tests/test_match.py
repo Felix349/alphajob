@@ -11,6 +11,7 @@ from app.llm import LLMError, StreamDone, StreamReset, StructuredResult, TextDel
 from app.main import app
 from app.models import LLMCallLog, MatchReport
 from app.schemas.match import MatchAnalysis, RequirementMatch, compute_score
+from app.services.match import MATCH_MAX_TOKENS
 from tests.conftest import TestSessionLocal
 
 RESUME = "# 张三\n硕士，研究方向 LLM Agent。\n项目：用 LangGraph 搭建多 Agent 论文助手，支持工具调用与长期记忆。"
@@ -164,7 +165,7 @@ async def test_stream_emits_deltas_then_done_and_persists(alice, use_llm):
     done = events[-1][1]
     # (必备 strong 100×2 + 加分项 missing 0×1) / 3 = 66.7 → 67
     assert done["report"]["score"] == 67 and done["stale"] is False
-    assert fake.max_tokens == 16384  # 输出很长，不能用默认的 8192
+    assert fake.max_tokens == MATCH_MAX_TOKENS > 8192  # 输出很长，不能用默认的 8192
     prompt = fake.prompts[0]
     assert (
         "<resume>" in prompt and "LangGraph" in prompt and "<notes>" in prompt and "ReAct" in prompt

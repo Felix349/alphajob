@@ -23,7 +23,9 @@ from app.schemas.match import (
 )
 from app.services import resume as resume_service
 
-MATCH_MAX_TOKENS = 16384
+# 只是防截断的“保险”：输出长度主要靠 schemas/match.py 里各字段的字数上限控制。
+# DeepSeek 的思考也计入输出 token；评估集里真实简历的输出中位数约 1.2 万（加字数上限之前）
+MATCH_MAX_TOKENS = 32768
 
 
 class NotFound(Exception):
@@ -146,8 +148,7 @@ async def stream_match(
                 prompt=match_prompt.build_prompt(app, resume.content_md, notes),
                 schema=MatchAnalysis,
                 effort="medium",
-                # 输出很长（逐条对照 + 备考清单 + 简历修改建议），而且 DeepSeek 的“思考”也计入
-                # 输出 token：实测一次英文简历分析就用掉约 7700，默认的 8192 很容易被截断
+                # 输出很长（逐条对照 + 备考清单 + 简历修改建议），默认的 8192 很容易被截断
                 max_tokens=MATCH_MAX_TOKENS,
             ):
                 if isinstance(event, TextDelta):

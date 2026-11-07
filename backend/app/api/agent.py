@@ -9,7 +9,7 @@ from sse_starlette import EventSourceResponse
 from app.agent import actions
 from app.agent.context import AgentContext, resolve_tz
 from app.agent.loop import run_agent
-from app.api.deps import get_current_user, require_llm
+from app.api.deps import SSE_HEADERS, get_current_user, require_llm
 from app.core.db import get_db, get_session_factory
 from app.llm import ChatMessage, LLMClient, LLMError
 from app.models import User
@@ -45,9 +45,7 @@ async def chat(
             async for event in run_agent(AgentContext(db, me, tz), llm, history):
                 yield {"event": event["event"], "data": _dumps(event["data"])}
 
-    return EventSourceResponse(
-        events(), ping=15, headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"}
-    )
+    return EventSourceResponse(events(), ping=15, headers=SSE_HEADERS)
 
 
 def _dumps(data) -> str:

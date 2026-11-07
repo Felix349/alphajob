@@ -36,6 +36,23 @@
 
 ## 本地运行
 
+### 方式一：Docker 一键启动（只想用，不改代码）
+
+只需要 Docker Desktop。
+
+```bash
+cp .env.example .env          # 然后把 JWT_SECRET 改成随机字符串，按需填写大模型的 API Key
+docker compose --profile app up -d --build
+```
+
+打开 http://localhost:3000 注册账号即可使用。第一次需要构建镜像，大约几分钟。容器会自动执行数据库迁移，再依次启动后端、后台 Worker 和前端。停止：`docker compose --profile app down`（数据保留在 Docker 数据卷里）。
+
+- 国内网络构建失败（连不上 `deb.debian.org`）时，在 `.env` 里设置 `APT_MIRROR=mirrors.aliyun.com`。
+- 3000 端口被占用时，在 `.env` 里改 `FRONTEND_PORT`。
+- 和方式二共用同一个数据库和上传目录，但不要同时运行（两者的前端都用 3000 端口）。
+
+### 方式二：开发模式（前后端热重载）
+
 **前置要求：** Python 3.12+ 与 [uv](https://docs.astral.sh/uv/)、Node.js 22+ 与 pnpm、Docker Desktop。
 
 ```bash
