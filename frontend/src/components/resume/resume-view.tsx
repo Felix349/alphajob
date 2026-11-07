@@ -7,38 +7,74 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useDeleteResume, useResume, useSaveResume, useUploadResume } from "@/hooks/use-resume";
-import type { Resume } from "@/lib/api/resume";
+import { RESUME_LANGUAGES, type Resume, type ResumeLanguage } from "@/lib/api/resume";
 
 const MIN_CHARS = 20;
 
-export function ResumeView() {
-  const { data, isPending, error } = useResume();
+const PLACEHOLDER: Record<ResumeLanguage, string> = {
+  zh: "# 你的名字\n\n## 教育经历\n…\n\n## 项目经历\n…\n\n## 技能\n…",
+  en: "# Your Name\n\n## Education\n…\n\n## Projects\n…\n\n## Skills\n…",
+};
 
+export function ResumeView() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">我的简历</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          上传 PDF
-          或直接粘贴文本。岗位匹配分析会读取这里的内容，所以提取后请检查一遍有没有遗漏或错字。
+          中文、英文简历各一份，上传 PDF 或直接粘贴文本。匹配分析会按 JD
+          的语言自动选用对应的简历，提取后请检查一遍有没有遗漏或错字。
         </p>
       </div>
-      {isPending && <Skeleton className="h-96 w-full rounded-xl" />}
-      {error && <p className="text-sm text-destructive">加载失败：{error.message}</p>}
-      {/* key：上传新文件后内容变了，让编辑器用新内容重新初始化 */}
-      {!isPending && !error && <Editor key={data?.updated_at ?? "empty"} resume={data ?? null} />}
+      <Tabs defaultValue="zh">
+        <TabsList>
+          {RESUME_LANGUAGES.map((l) => (
+            <TabsTrigger key={l.value} value={l.value}>
+              {l.label}
+              <SlotStatus language={l.value} />
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {RESUME_LANGUAGES.map((l) => (
+          // keepMounted：切换标签时保留另一份还没保存的修改
+          <TabsContent key={l.value} value={l.value} keepMounted className="mt-4">
+            <Slot language={l.value} />
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 }
 
-function Editor({ resume }: { resume: Resume | null }) {
+/** 标签上的小圆点：这一栏是否已经有简历 */
+function SlotStatus({ language }: { language: ResumeLanguage }) {
+  const { data } = useResume(language);
+  return (
+    <span
+      aria-label={data ? "已上传" : "未上传"}
+      className={`ml-1.5 inline-block size-1.5 rounded-full ${data ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+    />
+  );
+}
+
+function Slot({ language }: { language: ResumeLanguage }) {
+  const { data, isPending, error } = useResume(language);
+  if (isPending) return <Skeleton className="h-96 w-full rounded-xl" />;
+  if (error) return <p className="text-sm text-destructive">加载失败：{error.message}</p>;
+  // key：上传新文件后内容变了，让编辑器用新内容重新初始化
+  return <Editor key={data?.updated_at ?? "empty"} language={language} resume={data ?? null} />;
+}
+
+function Editor({ language, resume }: { language: ResumeLanguage; resume: Resume | null }) {
   const [text, setText] = useState(resume?.content_md ?? "");
   const fileInput = useRef<HTMLInputElement>(null);
-  const save = useSaveResume();
-  const upload = useUploadResume();
-  const remove = useDeleteResume();
+  const save = useSaveResume(language);
+  const upload = useUploadResume(language);
+  const remove = useDeleteResume(language);
+  const label = RESUME_LANGUAGES.find((l) => l.value === language)!.label;
 
   const dirty = text !== (resume?.content_md ?? "");
   const tooShort = text.trim().length < MIN_CHARS;
@@ -58,11 +94,11 @@ function Editor({ resume }: { resume: Resume | null }) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle>简历内容</CardTitle>
+          <CardTitle>{label}</CardTitle>
           <CardDescription className="mt-1">
             {resume
               ? `${resume.source === "pdf" ? `来自 ${resume.filename ?? "PDF"}` : "手动编辑"} · 更新于 ${new Date(resume.updated_at).toLocaleString("zh-CN")}`
-              : "还没有简历。支持 PDF、Markdown（.md）和纯文本（.txt），不超过 5 MB。"}
+              : `还没有${label}。支持 PDF、Markdown（.md）和纯文本（.txt），不超过 5 MB。`}
           </CardDescription>
         </div>
         <div className="flex shrink-0 gap-2">
@@ -85,12 +121,12 @@ function Editor({ resume }: { resume: Resume | null }) {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="删除简历"
+              aria-label={`删除${label}`}
               disabled={remove.isPending}
               onClick={() => {
-                if (!window.confirm("确定删除简历吗？已有的匹配分析不会受影响。")) return;
+                if (!window.confirm(`确定删除${label}吗？已有的匹配分析不会受影响。`)) return;
                 remove.mutate(undefined, {
-                  onSuccess: () => toast.success("简历已删除"),
+                  onSuccess: () => toast.success(`${label}已删除`),
                   onError: (err) => toast.error(err.message),
                 });
               }}
@@ -102,10 +138,10 @@ function Editor({ resume }: { resume: Resume | null }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <Textarea
-          aria-label="简历内容"
+          aria-label={`${label}内容`}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={"# 你的名字\n\n## 教育经历\n…\n\n## 项目经历\n…\n\n## 技能\n…"}
+          placeholder={PLACEHOLDER[language]}
           className="min-h-[480px] font-mono text-sm leading-relaxed"
         />
         <div className="flex items-center justify-between">
@@ -116,7 +152,7 @@ function Editor({ resume }: { resume: Resume | null }) {
             disabled={!dirty || tooShort || save.isPending}
             onClick={() =>
               save.mutate(text.trim(), {
-                onSuccess: () => toast.success("简历已保存"),
+                onSuccess: () => toast.success(`${label}已保存`),
                 onError: (err) => toast.error(err.message),
               })
             }

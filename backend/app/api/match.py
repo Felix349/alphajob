@@ -52,14 +52,14 @@ async def create_match_report(
     done（保存好的最终结果）、error（失败原因）。
     """
     try:
-        await service.check_ready(db, user, app_id)
+        await service.check_ready(db, user, app_id, data.resume_language)
     except service.NotFound:
         raise APP_NOT_FOUND from None
     except service.MatchPrecondition as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
 
     return EventSourceResponse(
-        service.stream_match(session_factory, llm, user, app_id, data.notes),
+        service.stream_match(session_factory, llm, user, app_id, data.notes, data.resume_language),
         ping=15,  # 每 15 秒发一次心跳，防止代理认为连接空闲而断开
         headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"},  # 禁止代理缓冲
     )

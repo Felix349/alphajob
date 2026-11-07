@@ -408,10 +408,122 @@ export interface paths {
         patch: operations["interviews-update_question"];
         trace?: never;
     };
+    "/api/agent/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chat
+         * @description 和求职 Agent 对话，以 SSE 推送每一步：thinking（模型的过渡语）、tool_call、tool_result、
+         *     proposal（待确认的写操作）、message（最终回答）、error。
+         */
+        post: operations["agent-chat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/actions/{action_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Action */
+        post: operations["agent-confirm_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/actions/{action_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Action */
+        post: operations["agent-cancel_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Plan
+         * @description 当天（本周）最新的一份计划；还没生成或已经过期时返回 null。
+         */
+        get: operations["agent-get_plan"];
+        put?: never;
+        /** Create Plan */
+        post: operations["agent-create_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/plan/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Toggle Plan Item */
+        patch: operations["agent-toggle_plan_item"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentActionOut */
+        AgentActionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Tool */
+            tool: string;
+            /** Description */
+            description: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "done" | "cancelled" | "failed";
+            /** Result */
+            result: string | null;
+        };
         /** ApplicationCreate */
         ApplicationCreate: {
             /** Company */
@@ -595,6 +707,29 @@ export interface components {
             /** Role */
             role: string;
             stage: components["schemas"]["Stage"];
+        };
+        /** ChatMessageIn */
+        ChatMessageIn: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
+        };
+        /**
+         * ChatRequest
+         * @description 对话历史由前端保存并整段发来：服务端不存聊天记录，实现简单，也不必考虑多设备同步。
+         */
+        ChatRequest: {
+            /** Messages */
+            messages: components["schemas"]["ChatMessageIn"][];
+            /**
+             * Timezone
+             * @description 浏览器时区，如 Asia/Shanghai
+             */
+            timezone?: string | null;
         };
         /** EventCreate */
         EventCreate: {
@@ -793,11 +928,6 @@ export interface components {
         /** MatchAnalysis */
         MatchAnalysis: {
             /**
-             * Score
-             * @description 整体匹配度，0–100 的整数。要克制：大部分要求都是 strong 才给 80 以上
-             */
-            score: number;
-            /**
              * Summary
              * @description 一段话总评：这个岗位最看重什么、你的优势和最大的差距，不超过 120 字
              */
@@ -809,12 +939,12 @@ export interface components {
             highlights: string[];
             /**
              * Requirements
-             * @description 逐条对照岗位的核心要求，5–10 条，按重要程度排序
+             * @description 逐条对照岗位要求，5–8 条：先列必备要求，再列加分项，各自按重要程度排序；相近的要求合并成一条
              */
             requirements: components["schemas"]["RequirementMatch"][];
             /**
              * Prep Items
-             * @description 备考清单，5–12 条，优先覆盖 missing 和 partial 的要求
+             * @description 备考清单，5–10 条，优先覆盖 missing 和 partial 的要求
              */
             prep_items: components["schemas"]["PrepSuggestion"][];
             /**
@@ -822,6 +952,16 @@ export interface components {
              * @description 结合 JD 和简历，最可能被问到的 3–8 个面试问题（包括针对简历经历的追问）
              */
             interview_questions: string[];
+            /**
+             * Resume Edits
+             * @description 针对这个岗位的简历修改建议，3–6 条，按收益从高到低排序：把和 JD 相关的经历写得更突出、用 JD 里的关键词描述已有的经历、补上缺失的量化结果、删减或弱化无关内容
+             */
+            resume_edits: components["schemas"]["ResumeEdit"][];
+            /**
+             * Score
+             * @description 匹配度 0–100，由 requirements 按固定规则计算（见 compute_score）
+             */
+            readonly score: number;
         };
         /** MatchReportOut */
         MatchReportOut: {
@@ -848,6 +988,11 @@ export interface components {
              * Format: date-time
              */
             resume_updated_at: string;
+            /**
+             * Resume Language
+             * @enum {string}
+             */
+            resume_language: "zh" | "en";
             /** Stale */
             stale: boolean;
         };
@@ -858,6 +1003,11 @@ export interface components {
              * @description 可选：用户粘贴的面经、内推人透露的信息等
              */
             notes?: string | null;
+            /**
+             * Resume Language
+             * @description 用哪份简历分析：zh / en；不填则自动选择（英文 JD 优先用英文简历）
+             */
+            resume_language?: ("zh" | "en") | null;
         };
         /** ParseJDRequest */
         ParseJDRequest: {
@@ -927,6 +1077,54 @@ export interface components {
              * @description 用一句话概括这个岗位最看重什么，不超过 40 字
              */
             summary: string;
+        };
+        /** PlanItemToggle */
+        PlanItemToggle: {
+            /** Index */
+            index: number;
+            /** Done */
+            done: boolean;
+        };
+        /** PlanOut */
+        PlanOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "today" | "week";
+            /**
+             * Plan Date
+             * Format: date
+             */
+            plan_date: string;
+            /** Plan */
+            plan: {
+                [key: string]: unknown;
+            };
+            /** Done Items */
+            done_items: number[];
+            /** Model */
+            model: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PlanRequest */
+        PlanRequest: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "today" | "week";
+            /** Timezone */
+            timezone?: string | null;
         };
         /**
          * PrepCategory
@@ -1099,9 +1297,15 @@ export interface components {
         RequirementMatch: {
             /**
              * Requirement
-             * @description 岗位的一项核心要求，来自 JD，用一句话概括
+             * @description 岗位的一项要求，来自 JD，用一句话概括
              */
             requirement: string;
+            /**
+             * Importance
+             * @description required：必备要求（JD 里的“任职要求”“必须”“熟悉”等）；preferred：加分项（JD 里的“优先”“加分”“者更佳”“nice to have”“is a plus”等）
+             * @enum {string}
+             */
+            importance: "required" | "preferred";
             /**
              * Level
              * @description strong：简历中有明确、直接的证据；partial：有相关经历但不完全对口或深度不够；missing：简历中找不到依据
@@ -1119,6 +1323,29 @@ export interface components {
              */
             advice: string;
         };
+        /** ResumeEdit */
+        ResumeEdit: {
+            /**
+             * Section
+             * @description 改的是简历哪一部分，例如“项目经历：多 Agent 论文助手”“技能”“个人总结”
+             */
+            section: string;
+            /**
+             * Original
+             * @description 要修改的简历原句，逐字引用简历原文；如果是建议新增一句（原来没有），填 null
+             */
+            original: string | null;
+            /**
+             * Suggestion
+             * @description 修改后的写法，可以直接替换进简历。用简历本身的语言写（英文简历就写英文）。只能重新组织、强调简历里已有的事实；需要求职者补充的信息（如数据量、提升幅度）用【待补充：……】占位，绝不能编造数字或经历
+             */
+            suggestion: string;
+            /**
+             * Reason
+             * @description 为什么这样改：对应 JD 的哪项要求、改了之后好在哪里
+             */
+            reason: string;
+        };
         /** ResumeIn */
         ResumeIn: {
             /** Content Md */
@@ -1131,6 +1358,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "zh" | "en";
             /** Content Md */
             content_md: string;
             /** Source */
@@ -1660,7 +1892,10 @@ export interface operations {
     };
     "resume-get_resume": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description zh：中文简历；en：英文简历 */
+                language?: "zh" | "en";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1676,11 +1911,23 @@ export interface operations {
                     "application/json": components["schemas"]["ResumeOut"] | null;
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     "resume-save_resume": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description zh：中文简历；en：英文简历 */
+                language?: "zh" | "en";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1713,7 +1960,10 @@ export interface operations {
     };
     "resume-delete_resume": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description zh：中文简历；en：英文简历 */
+                language?: "zh" | "en";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1727,11 +1977,23 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     "resume-upload_resume": {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description zh：中文简历；en：英文简历 */
+                language?: "zh" | "en";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2191,6 +2453,201 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "agent-chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description SSE 事件流 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "agent-confirm_action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentActionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "agent-cancel_action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentActionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "agent-get_plan": {
+        parameters: {
+            query: {
+                kind: "today" | "week";
+                timezone?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "agent-create_plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "agent-toggle_plan_item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanItemToggle"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
                 };
             };
             /** @description Validation Error */

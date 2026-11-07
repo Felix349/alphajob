@@ -51,8 +51,66 @@ class StreamDone[T: BaseModel]:
 StreamEvent = TextDelta | StreamReset | StreamDone
 
 
+# ---------- 工具调用（W6 的 Agent 使用）----------
+
+
+@dataclass
+class ToolSpec:
+    """提供给模型的一个工具：名字、用途说明（模型靠它决定什么时候调用）、参数的 JSON Schema。"""
+
+    name: str
+    description: str
+    parameters: dict
+
+
+@dataclass
+class ToolCall:
+    id: str  # 模型生成的调用 id，回传结果时要对上
+    name: str
+    arguments: dict
+    # 参数不是合法 JSON 时记下原因，让 Agent 把错误反馈给模型修正，而不是直接崩溃
+    parse_error: str | None = None
+
+
+@dataclass
+class ToolResult:
+    call_id: str
+    content: str  # 一般是 JSON 字符串
+    is_error: bool = False
+
+
+@dataclass
+class AssistantTurn:
+    """模型的一次回复：可能只有文字（说完了），也可能带着若干个工具调用（还要继续）。"""
+
+    text: str
+    tool_calls: list[ToolCall]
+    input_tokens: int
+    output_tokens: int
+
+
+@dataclass
+class ChatMessage:
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ToolSession(Protocol):
+    """一段带工具的对话。各家模型的消息格式差别很大（OpenAI 用 role=tool 的消息回传结果，
+    Claude 用 tool_result 内容块，还要原样回传思考块），所以由各个适配器用自己的原生格式保存历史，
+    Agent 循环只需要反复调用 step() 和 add_tool_results()，不用关心这些差异。"""
+
+    async def step(self) -> AssistantTurn:
+        """请求模型回复一次，并把回复追加进历史。"""
+        ...
+
+    def add_tool_results(self, results: list[ToolResult]) -> None:
+        """把这一轮所有工具的执行结果追加进历史（必须在下一次 step() 之前调用）。"""
+        ...
+
+
 class LLMClient(Protocol):
-    """所有模型适配器实现的统一接口。W6 会再加入工具调用。"""
+    """所有模型适配器实现的统一接口。"""
 
     provider: str
     model: str
@@ -82,4 +140,10 @@ class LLMClient(Protocol):
 
         用途：生成时间较长的分析（10–30 秒），让用户能看到内容一点点出现，而不是干等。
         """
+        ...
+
+    def tool_session(
+        self, *, system: str, history: list[ChatMessage], tools: list[ToolSpec]
+    ) -> ToolSession:
+        """开始一段可以调用工具的对话。history 的最后一条应当是用户消息。"""
         ...

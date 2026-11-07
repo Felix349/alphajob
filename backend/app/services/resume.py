@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Resume, User
+from app.models.resume import ResumeLanguage
 from app.schemas.resume import MAX_RESUME_CHARS
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -20,16 +21,37 @@ class ResumeParseError(Exception):
     pass
 
 
-async def get_resume(db: AsyncSession, user: User) -> Resume | None:
-    return (await db.execute(select(Resume).where(Resume.user_id == user.id))).scalar_one_or_none()
+async def get_resume(
+    db: AsyncSession, user: User, language: ResumeLanguage = "zh"
+) -> Resume | None:
+    stmt = select(Resume).where(Resume.user_id == user.id, Resume.language == language)
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def list_resumes(db: AsyncSession, user: User) -> dict[str, Resume]:
+    """当前用户的所有简历，按语言索引：{"zh": ..., "en": ...}"""
+    rows = (await db.execute(select(Resume).where(Resume.user_id == user.id))).scalars()
+    return {r.language: r for r in rows}
 
 
 async def save_resume(
-    db: AsyncSession, user: User, content_md: str, *, source: str = "manual", filename=None
+    db: AsyncSession,
+    user: User,
+    content_md: str,
+    *,
+    language: ResumeLanguage = "zh",
+    source: str = "manual",
+    filename=None,
 ) -> Resume:
-    resume = await get_resume(db, user)
+    resume = await get_resume(db, user, language)
     if resume is None:
-        resume = Resume(user_id=user.id, content_md=content_md, source=source, filename=filename)
+        resume = Resume(
+            user_id=user.id,
+            language=language,
+            content_md=content_md,
+            source=source,
+            filename=filename,
+        )
         db.add(resume)
     else:
         resume.content_md = content_md
@@ -41,8 +63,8 @@ async def save_resume(
     return resume
 
 
-async def delete_resume(db: AsyncSession, user: User) -> bool:
-    resume = await get_resume(db, user)
+async def delete_resume(db: AsyncSession, user: User, language: ResumeLanguage = "zh") -> bool:
+    resume = await get_resume(db, user, language)
     if resume is None:
         return False
     await db.delete(resume)

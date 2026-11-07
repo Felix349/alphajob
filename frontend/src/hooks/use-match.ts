@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   type MatchAnalysis,
+  type MatchRequest,
   type PrepItem,
   type PrepItemCreate,
   type PrepItemUpdate,
@@ -44,7 +45,7 @@ export function useMatchStream(appId: string) {
   useEffect(() => () => controller.current?.abort(), []);
 
   const start = useCallback(
-    async (notes: string | null) => {
+    async (request: MatchRequest) => {
       controller.current?.abort();
       const ac = new AbortController();
       controller.current = ac;
@@ -54,7 +55,7 @@ export function useMatchStream(appId: string) {
       try {
         await streamMatch(
           appId,
-          notes,
+          request,
           {
             onDelta: (text) => {
               buffer += text;

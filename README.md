@@ -16,7 +16,7 @@
 | W2 求职看板：投递管理、拖拽看板、JD 智能解析、日程与日历 | ✅ 完成 |
 | W3 岗位匹配备考：简历上传、流式匹配分析、备考清单 | ✅ 完成 |
 | W4 面试复盘：录音 / 文字复盘、语音转写、后台任务、个人题库 | ✅ 完成 |
-| W6 求职 Agent | ⏳ 下一步 |
+| W6 求职 Agent：今日 / 本周计划、对话（工具调用 + 写操作确认） | ✅ 完成 |
 
 ## 技术栈
 
@@ -57,7 +57,7 @@ uv run arq app.worker.WorkerSettings
 
 # 5. 启动前端（新终端）
 cd frontend
-pnpm install
+# pnpm install
 pnpm dev
 ```
 

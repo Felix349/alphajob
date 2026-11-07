@@ -50,6 +50,7 @@ async def logged_stream_structured[T: BaseModel](
     prompt: str,
     schema: type[T],
     effort: Effort = "medium",
+    max_tokens: int = 8192,
 ) -> AsyncIterator[StreamEvent]:
     """流式版本：原样转发事件，结束（成功或失败）时写一条日志。
 
@@ -60,7 +61,7 @@ async def logged_stream_structured[T: BaseModel](
     log = LLMCallLog(user_id=user.id, feature=feature, provider=llm.provider, model=llm.model)
     try:
         async for event in llm.stream_structured(
-            system=system, user=prompt, schema=schema, effort=effort
+            system=system, user=prompt, schema=schema, effort=effort, max_tokens=max_tokens
         ):
             if isinstance(event, StreamDone):
                 log.model = event.result.model

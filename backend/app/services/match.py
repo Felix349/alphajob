@@ -1,6 +1,7 @@
 """岗位匹配分析（流式）与备考清单。"""
 
 import json
+import re
 import uuid
 from collections.abc import AsyncIterator
 
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.llm import LLMClient, LLMError, StreamDone, StreamReset, TextDelta
 from app.llm.logging import logged_stream_structured
 from app.models import Application, MatchReport, PrepItem, Resume, User
+from app.models.resume import ResumeLanguage
 from app.prompts import match as match_prompt
 from app.repositories import applications as app_repo
 from app.schemas.match import (
@@ -19,6 +21,9 @@ from app.schemas.match import (
     PrepItemOut,
     PrepItemUpdate,
 )
+from app.services import resume as resume_service
+
+MATCH_MAX_TOKENS = 16384
 
 
 class NotFound(Exception):
@@ -32,29 +37,77 @@ class MatchPrecondition(Exception):
 # ---------- 匹配分析 ----------
 
 
-async def _resume_of(db: AsyncSession, user: User) -> Resume | None:
-    return (await db.execute(select(Resume).where(Resume.user_id == user.id))).scalar_one_or_none()
+_LANGUAGE_NAMES = {"zh": "中文", "en": "英文"}
+_CJK_CHAR = re.compile(r"[一-鿿]")
+_LATIN_CHAR = re.compile(r"[A-Za-z]")
 
 
-async def check_ready(db: AsyncSession, user: User, app_id: uuid.UUID) -> None:
+def _strings_in(value) -> list[str]:
+    """取出 jd_parsed 里所有的字符串值（不要键名：键名是英文，会干扰语言判断）。"""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in _strings_in(v)]
+    if isinstance(value, list):
+        return [s for v in value for s in _strings_in(v)]
+    return []
+
+
+def jd_language(app: Application) -> ResumeLanguage:
+    """粗略判断 JD 是中文还是英文：汉字占字母的比例很低，就当作英文 JD。
+
+    中文 JD 里常夹着 Python、Kubernetes 之类的英文词，所以不能“出现英文就算英文”，
+    而是看汉字占多少：一个汉字信息量大约相当于几个英文字母，5% 是个足够宽松的分界线。
+    """
+    text = app.jd_text or " ".join(_strings_in(app.jd_parsed or {}))
+    cjk = len(_CJK_CHAR.findall(text))
+    latin = len(_LATIN_CHAR.findall(text))
+    if latin == 0:
+        return "zh"
+    return "en" if cjk / (cjk + latin) < 0.05 else "zh"
+
+
+def _pick_resume(
+    resumes: dict[str, Resume], app: Application, requested: ResumeLanguage | None
+) -> Resume:
+    """选出这次分析用的简历。
+
+    - 用户指定了语言：必须有那份简历，否则报错（不悄悄换成另一份，免得用户以为用的是英文简历）
+    - 没指定：按 JD 的语言选；对应语言的简历没有，就退回另一份
+    """
+    if not resumes:
+        raise MatchPrecondition("还没有上传简历，请先到“我的简历”页面上传")
+    if requested is not None:
+        if requested not in resumes:
+            name = _LANGUAGE_NAMES[requested]
+            raise MatchPrecondition(f"还没有上传{name}简历，请先到“我的简历”页面上传，或换一份简历")
+        return resumes[requested]
+    preferred = jd_language(app)
+    return resumes.get(preferred) or next(iter(resumes.values()))
+
+
+async def check_ready(
+    db: AsyncSession, user: User, app_id: uuid.UUID, resume_language: ResumeLanguage | None
+) -> None:
     """在开始流式响应之前检查条件，这样不满足时可以返回普通的 400，而不是开了流再报错。"""
     app = await app_repo.get_for_user(db, user.id, app_id)
     if app is None:
         raise NotFound
     if not (app.jd_text or app.jd_parsed):
         raise MatchPrecondition("这条投递还没有岗位描述（JD），请先在详情页补充")
-    if await _resume_of(db, user) is None:
-        raise MatchPrecondition("还没有上传简历，请先到“我的简历”页面上传")
+    _pick_resume(await resume_service.list_resumes(db, user), app, resume_language)
 
 
 def _to_out(report: MatchReport, resume: Resume | None) -> MatchReportOut:
+    """resume：和这份分析同一语言的简历（可能已被删除），用来判断分析是否过时。"""
     return MatchReportOut(
         id=report.id,
         application_id=report.application_id,
-        report=MatchAnalysis.model_validate(report.report),
+        report=MatchAnalysis.from_stored(report.report),
         model=report.model,
         created_at=report.created_at,
         resume_updated_at=report.resume_updated_at,
+        resume_language=report.resume_language,
         stale=resume is not None and resume.updated_at > report.resume_updated_at,
     )
 
@@ -69,13 +122,18 @@ async def stream_match(
     user: User,
     app_id: uuid.UUID,
     notes: str | None,
+    resume_language: ResumeLanguage | None = None,
 ) -> AsyncIterator[dict]:
     """生成 SSE 事件：delta（JSON 片段）、reset（结果作废、重新生成）、done（最终结果）、error。"""
     async with session_factory() as db:
         app = await app_repo.get_for_user(db, user.id, app_id)
-        resume = await _resume_of(db, user)
-        if app is None or resume is None:  # 理论上 check_ready 已经挡住了，这里防并发删除
-            yield _sse("error", {"detail": "投递或简历已不存在"})
+        if app is None:  # 理论上 check_ready 已经挡住了，这里防并发删除
+            yield _sse("error", {"detail": "投递记录已不存在"})
+            return
+        try:
+            resume = _pick_resume(await resume_service.list_resumes(db, user), app, resume_language)
+        except MatchPrecondition as exc:
+            yield _sse("error", {"detail": str(exc)})
             return
 
         try:
@@ -88,6 +146,9 @@ async def stream_match(
                 prompt=match_prompt.build_prompt(app, resume.content_md, notes),
                 schema=MatchAnalysis,
                 effort="medium",
+                # 输出很长（逐条对照 + 备考清单 + 简历修改建议），而且 DeepSeek 的“思考”也计入
+                # 输出 token：实测一次英文简历分析就用掉约 7700，默认的 8192 很容易被截断
+                max_tokens=MATCH_MAX_TOKENS,
             ):
                 if isinstance(event, TextDelta):
                     yield _sse("delta", {"text": event.text})
@@ -108,6 +169,7 @@ async def _save_report(db: AsyncSession, user: User, app: Application, resume: R
         report=analysis.model_dump(mode="json"),
         model=result.model,
         resume_updated_at=resume.updated_at,
+        resume_language=resume.language,
     )
     db.add(report)
 
@@ -148,7 +210,8 @@ async def latest_report(db: AsyncSession, user: User, app_id: uuid.UUID) -> Matc
     ).scalar_one_or_none()
     if report is None:
         return None
-    return _to_out(report, await _resume_of(db, user))
+    resume = await resume_service.get_resume(db, user, report.resume_language)
+    return _to_out(report, resume)
 
 
 # ---------- 备考清单 ----------

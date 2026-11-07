@@ -6,6 +6,8 @@
 """
 
 from app.llm.base import (
+    AssistantTurn,
+    ChatMessage,
     LLMClient,
     LLMError,
     LLMNotConfigured,
@@ -14,9 +16,15 @@ from app.llm.base import (
     StreamReset,
     StructuredResult,
     TextDelta,
+    ToolCall,
+    ToolResult,
+    ToolSession,
+    ToolSpec,
 )
 
 __all__ = [
+    "AssistantTurn",
+    "ChatMessage",
     "LLMClient",
     "LLMError",
     "LLMNotConfigured",
@@ -25,4 +33,8 @@ __all__ = [
     "StreamReset",
     "StructuredResult",
     "TextDelta",
+    "ToolCall",
+    "ToolResult",
+    "ToolSession",
+    "ToolSpec",
 ]
