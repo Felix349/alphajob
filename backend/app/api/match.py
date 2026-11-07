@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sse_starlette import EventSourceResponse
 
-from app.api.deps import get_current_user, require_llm
+from app.api.deps import SSE_HEADERS, get_current_user, require_llm
 from app.core.db import get_db, get_session_factory
 from app.llm import LLMClient
 from app.models import User
@@ -61,7 +61,7 @@ async def create_match_report(
     return EventSourceResponse(
         service.stream_match(session_factory, llm, user, app_id, data.notes, data.resume_language),
         ping=15,  # 每 15 秒发一次心跳，防止代理认为连接空闲而断开
-        headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"},  # 禁止代理缓冲
+        headers=SSE_HEADERS,
     )
 
 

@@ -934,7 +934,7 @@ export interface components {
             summary: string;
             /**
              * Highlights
-             * @description 最值得在面试中重点讲的 2–5 个亮点，每条都要能对应到简历中的具体经历
+             * @description 最值得在面试中重点讲的 2–5 个亮点，每条不超过 40 字，都要能对应到简历中的具体经历
              */
             highlights: string[];
             /**
@@ -949,7 +949,7 @@ export interface components {
             prep_items: components["schemas"]["PrepSuggestion"][];
             /**
              * Interview Questions
-             * @description 结合 JD 和简历，最可能被问到的 3–8 个面试问题（包括针对简历经历的追问）
+             * @description 结合 JD 和简历，最可能被问到的 3–8 个面试问题（包括针对简历经历的追问），每个不超过 40 字
              */
             interview_questions: string[];
             /**
@@ -1184,7 +1184,7 @@ export interface components {
         PrepSuggestion: {
             /**
              * Content
-             * @description 一条具体、可执行、能在 1–3 天内完成的备考任务，以动词开头，例如“复习 Raft 选主流程并能画出时序图”
+             * @description 一条具体、可执行、能在 1–3 天内完成的备考任务，以动词开头，不超过 50 字，例如“复习 Raft 选主流程并能画出时序图”
              */
             content: string;
             /** @description knowledge：知识点；project：项目经历的准备；question：刷题或练习题；other：其他 */
@@ -1297,7 +1297,7 @@ export interface components {
         RequirementMatch: {
             /**
              * Requirement
-             * @description 岗位的一项要求，来自 JD，用一句话概括
+             * @description 岗位的一项要求，来自 JD，用一句话概括，不超过 30 字
              */
             requirement: string;
             /**
@@ -1314,12 +1314,12 @@ export interface components {
             level: "strong" | "partial" | "missing";
             /**
              * Evidence
-             * @description 简历中支撑这项判断的依据，引用或概括简历原文（写清楚是哪段经历）。level 为 missing 时填 null。绝对不要编造简历里没有的内容
+             * @description 简历中支撑这项判断的依据：写明是哪段经历，引用最关键的一句，不超过 60 字。level 为 missing 时填 null。绝对不要编造简历里没有的内容
              */
             evidence: string | null;
             /**
              * Advice
-             * @description 具体建议：strong 写面试时怎么讲出亮点；partial / missing 写怎么在面试前补上或如何坦诚应对
+             * @description 具体建议，不超过 80 字：strong 写面试时怎么讲出亮点；partial / missing 写怎么在面试前补上或如何坦诚应对
              */
             advice: string;
         };
@@ -1337,12 +1337,12 @@ export interface components {
             original: string | null;
             /**
              * Suggestion
-             * @description 修改后的写法，可以直接替换进简历。用简历本身的语言写（英文简历就写英文）。只能重新组织、强调简历里已有的事实；需要求职者补充的信息（如数据量、提升幅度）用【待补充：……】占位，绝不能编造数字或经历
+             * @description 修改后的写法，可以直接替换进简历，篇幅和原句相当（新增一句时不超过 100 字或 60 个英文单词）。用简历本身的语言写（英文简历就写英文）。只能重新组织、强调简历里已有的事实；需要求职者补充的信息（如数据量、提升幅度）用【待补充：……】占位，绝不能编造数字或经历
              */
             suggestion: string;
             /**
              * Reason
-             * @description 为什么这样改：对应 JD 的哪项要求、改了之后好在哪里
+             * @description 为什么这样改：对应 JD 的哪项要求、改了之后好在哪里，不超过 50 字
              */
             reason: string;
         };

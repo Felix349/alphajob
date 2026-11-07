@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
+  // 构建产物自带一个最小的 Node 服务（.next/standalone），Docker 镜像只需拷贝它
+  output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

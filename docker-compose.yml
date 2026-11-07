@@ -1,6 +1,32 @@
-# 开发环境基础设施：只运行 Postgres 和 Redis，前后端在本机热重载运行
-# 启动：docker compose up -d      停止：docker compose down
+# 两种用法：
+#
+# 1. 开发（默认）：只运行 Postgres 和 Redis，前后端在本机热重载运行
+#      docker compose up -d                 停止：docker compose down
+#
+# 2. 一键启动整个应用（app 配置组）：数据库迁移、后端 API、后台 Worker、前端全部在容器里运行
+#      docker compose --profile app up -d --build
+#      打开 http://localhost:3000           停止：docker compose --profile app down
+#
+# 两种模式共用同一个数据库和上传目录（./data/uploads），数据互通。
+# 不要同时运行：两种模式的前端都用 3000 端口。
 name: alphajob
+
+x-backend: &backend
+  build:
+    context: ./backend
+    args:
+      APT_MIRROR: ${APT_MIRROR:-deb.debian.org}
+  image: alphajob-backend:local
+  profiles: [app]
+  restart: unless-stopped
+  # API Key 等配置从 .env 读取；下面的 environment 覆盖其中“本机地址”的几项，改成容器内的服务名
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-alphajob}:${POSTGRES_PASSWORD:-alphajob_dev_password}@postgres:5432/${POSTGRES_DB:-alphajob}
+    REDIS_URL: redis://redis:6379/0
+    UPLOAD_DIR: /data/uploads
+  volumes:
+    - ./data/uploads:/data/uploads
 
 services:
   postgres:
@@ -34,6 +60,58 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # ---------- 以下只在 --profile app 时启动 ----------
+
+  # 执行完数据库迁移就退出；API 和 Worker 等它成功之后才启动
+  migrate:
+    <<: *backend
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    <<: *backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *backend
+    command: ["arq", "app.worker.WorkerSettings"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000
+    image: alphajob-frontend:local
+    profiles: [app]
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   pgdata:
