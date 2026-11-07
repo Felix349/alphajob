@@ -90,6 +90,9 @@ pnpm dev
 
 | 目的 | 命令 |
 |---|---|
+| 一键启动整个应用（Docker） | `docker compose --profile app up -d --build` |
+| 查看各服务状态 / 后端日志 | `docker compose --profile app ps` / `docker compose --profile app logs -f backend` |
+| 停止一键启动的应用（数据保留） | `docker compose --profile app down` |
 | 后端测试 | `cd backend && uv run pytest` |
 | 后端检查与格式化 | `uv run ruff check . && uv run ruff format .` |
 | 新建数据库迁移 | `uv run alembic revision --autogenerate -m "描述"` |
