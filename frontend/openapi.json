@@ -1807,10 +1807,468 @@
           }
         }
       }
+    },
+    "/api/screening/batches": {
+      "get": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "List Batches",
+        "operationId": "screening-list_batches",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BatchOut"
+                  },
+                  "type": "array",
+                  "title": "Response Screening-List Batches"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Create Batch",
+        "operationId": "screening-create_batch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/batches/{batch_id}": {
+      "get": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Get Batch",
+        "operationId": "screening-get_batch",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Delete Batch",
+        "operationId": "screening-delete_batch",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/batches/{batch_id}/jobs": {
+      "post": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Add Jobs",
+        "description": "提交结构化的岗位列表（浏览器插件用）。翻页后重复提交会自动去重。",
+        "operationId": "screening-add_jobs",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobsIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddJobsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/batches/{batch_id}/extract": {
+      "post": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Extract Jobs",
+        "description": "从粘贴的招聘列表页文本里抽取岗位。",
+        "operationId": "screening-extract_jobs",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddJobsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/batches/{batch_id}/screen": {
+      "post": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Screen",
+        "description": "硬条件过滤 + 粗筛，返回进入精排、但还缺 JD 的岗位。",
+        "operationId": "screening-screen",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/jobs/{job_id}/jd": {
+      "put": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Set Jd",
+        "operationId": "screening-set_jd",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JdIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/batches/{batch_id}/rank": {
+      "post": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Rank",
+        "description": "精排进入名单且有 JD 的岗位。事件：start（总数）、job（每完成一个）、done（最终排序）。",
+        "operationId": "screening-rank",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE 事件流",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screening/jobs/{job_id}/import": {
+      "post": {
+        "tags": [
+          "screening"
+        ],
+        "summary": "Import Job",
+        "description": "加入投递记录（“想投”阶段）。返回投递记录的 id；重复调用返回同一条。",
+        "operationId": "screening-import_job",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": "Response Screening-Import Job"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddJobsResult": {
+        "properties": {
+          "added": {
+            "type": "integer",
+            "title": "Added"
+          },
+          "duplicated": {
+            "type": "integer",
+            "title": "Duplicated"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "added",
+          "duplicated",
+          "total"
+        ],
+        "title": "AddJobsResult"
+      },
       "AgentActionOut": {
         "properties": {
           "id": {
@@ -2353,6 +2811,232 @@
         "title": "ApplicationUpdate",
         "description": "PATCH：只更新请求里出现的字段（exclude_unset）。拖拽改阶段也走这里。"
       },
+      "BatchCreate": {
+        "properties": {
+          "company": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Company"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "resume_language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "zh",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Language",
+            "description": "用哪份简历；不填则按岗位语言自动选"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ScreeningFilters"
+          },
+          "top_n": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Top N",
+            "description": "粗筛后进入精排的岗位数",
+            "default": 15
+          }
+        },
+        "type": "object",
+        "required": [
+          "company"
+        ],
+        "title": "BatchCreate"
+      },
+      "BatchDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "company": {
+            "type": "string",
+            "title": "Company"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ScreeningFilters"
+          },
+          "resume_language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "zh",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Language"
+          },
+          "top_n": {
+            "type": "integer",
+            "title": "Top N"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "total_jobs": {
+            "type": "integer",
+            "title": "Total Jobs"
+          },
+          "shortlisted_jobs": {
+            "type": "integer",
+            "title": "Shortlisted Jobs"
+          },
+          "ranked_jobs": {
+            "type": "integer",
+            "title": "Ranked Jobs"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobOut"
+            },
+            "type": "array",
+            "title": "Jobs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "company",
+          "source_url",
+          "filters",
+          "resume_language",
+          "top_n",
+          "status",
+          "created_at",
+          "total_jobs",
+          "shortlisted_jobs",
+          "ranked_jobs",
+          "jobs"
+        ],
+        "title": "BatchDetail"
+      },
+      "BatchOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "company": {
+            "type": "string",
+            "title": "Company"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ScreeningFilters"
+          },
+          "resume_language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "zh",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Language"
+          },
+          "top_n": {
+            "type": "integer",
+            "title": "Top N"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "total_jobs": {
+            "type": "integer",
+            "title": "Total Jobs"
+          },
+          "shortlisted_jobs": {
+            "type": "integer",
+            "title": "Shortlisted Jobs"
+          },
+          "ranked_jobs": {
+            "type": "integer",
+            "title": "Ranked Jobs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "company",
+          "source_url",
+          "filters",
+          "resume_language",
+          "top_n",
+          "status",
+          "created_at",
+          "total_jobs",
+          "shortlisted_jobs",
+          "ranked_jobs"
+        ],
+        "title": "BatchOut"
+      },
       "Body_interviews-create_interview": {
         "properties": {
           "round": {
@@ -2779,6 +3463,22 @@
         "type": "object",
         "title": "EventUpdate"
       },
+      "ExtractRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 60000,
+            "minLength": 10,
+            "title": "Text",
+            "description": "招聘列表页的文本（复制整页）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ExtractRequest"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3102,6 +3802,298 @@
           "next_round_advice"
         ],
         "title": "InterviewSummaryOut"
+      },
+      "JdIn": {
+        "properties": {
+          "jd_text": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 20,
+            "title": "Jd Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jd_text"
+        ],
+        "title": "JdIn"
+      },
+      "JobIn": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "job_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "校招",
+                  "实习",
+                  "社招"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Type"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "JobIn"
+      },
+      "JobOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "job_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Type"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet"
+          },
+          "has_jd": {
+            "type": "boolean",
+            "title": "Has Jd"
+          },
+          "filtered_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filtered Reason"
+          },
+          "coarse_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coarse Score"
+          },
+          "coarse_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coarse Reason"
+          },
+          "shortlisted": {
+            "type": "boolean",
+            "title": "Shortlisted"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "rank_result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Result"
+          },
+          "rank_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Error"
+          },
+          "application_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Application Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "position",
+          "title",
+          "location",
+          "category",
+          "job_type",
+          "url",
+          "snippet",
+          "has_jd",
+          "filtered_reason",
+          "coarse_score",
+          "coarse_reason",
+          "shortlisted",
+          "score",
+          "rank_result",
+          "rank_error",
+          "application_id"
+        ],
+        "title": "JobOut"
+      },
+      "JobsIn": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobIn"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Jobs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobs"
+        ],
+        "title": "JobsIn"
       },
       "LoginRequest": {
         "properties": {
@@ -4071,6 +5063,63 @@
           "updated_at"
         ],
         "title": "ResumeOut"
+      },
+      "ScreenResult": {
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/BatchDetail"
+          },
+          "needs_jd": {
+            "items": {
+              "$ref": "#/components/schemas/JobOut"
+            },
+            "type": "array",
+            "title": "Needs Jd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "batch",
+          "needs_jd"
+        ],
+        "title": "ScreenResult"
+      },
+      "ScreeningFilters": {
+        "properties": {
+          "cities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Cities",
+            "description": "只保留这些城市的岗位；为空表示不限"
+          },
+          "job_types": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "校招",
+                "实习",
+                "社招"
+              ]
+            },
+            "type": "array",
+            "title": "Job Types",
+            "description": "只保留这些招聘类型；为空表示不限"
+          },
+          "exclude_keywords": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Exclude Keywords",
+            "description": "岗位名包含这些词的直接排除"
+          }
+        },
+        "type": "object",
+        "title": "ScreeningFilters"
       },
       "Stage": {
         "type": "string",

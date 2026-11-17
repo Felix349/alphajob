@@ -501,10 +501,172 @@ export interface paths {
         patch: operations["agent-toggle_plan_item"];
         trace?: never;
     };
+    "/api/screening/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Batches */
+        get: operations["screening-list_batches"];
+        put?: never;
+        /** Create Batch */
+        post: operations["screening-create_batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Batch */
+        get: operations["screening-get_batch"];
+        put?: never;
+        post?: never;
+        /** Delete Batch */
+        delete: operations["screening-delete_batch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/batches/{batch_id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Jobs
+         * @description 提交结构化的岗位列表（浏览器插件用）。翻页后重复提交会自动去重。
+         */
+        post: operations["screening-add_jobs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/batches/{batch_id}/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract Jobs
+         * @description 从粘贴的招聘列表页文本里抽取岗位。
+         */
+        post: operations["screening-extract_jobs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/batches/{batch_id}/screen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Screen
+         * @description 硬条件过滤 + 粗筛，返回进入精排、但还缺 JD 的岗位。
+         */
+        post: operations["screening-screen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/jobs/{job_id}/jd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Jd */
+        put: operations["screening-set_jd"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/batches/{batch_id}/rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rank
+         * @description 精排进入名单且有 JD 的岗位。事件：start（总数）、job（每完成一个）、done（最终排序）。
+         */
+        post: operations["screening-rank"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/screening/jobs/{job_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Job
+         * @description 加入投递记录（“想投”阶段）。返回投递记录的 id；重复调用返回同一条。
+         */
+        post: operations["screening-import_job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddJobsResult */
+        AddJobsResult: {
+            /** Added */
+            added: number;
+            /** Duplicated */
+            duplicated: number;
+            /** Total */
+            total: number;
+        };
         /** AgentActionOut */
         AgentActionOut: {
             /**
@@ -646,6 +808,87 @@ export interface components {
             applied_at?: string | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** BatchCreate */
+        BatchCreate: {
+            /** Company */
+            company: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Resume Language
+             * @description 用哪份简历；不填则按岗位语言自动选
+             */
+            resume_language?: ("zh" | "en") | null;
+            filters?: components["schemas"]["ScreeningFilters"];
+            /**
+             * Top N
+             * @description 粗筛后进入精排的岗位数
+             * @default 15
+             */
+            top_n: number;
+        };
+        /** BatchDetail */
+        BatchDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Company */
+            company: string;
+            /** Source Url */
+            source_url: string | null;
+            filters: components["schemas"]["ScreeningFilters"];
+            /** Resume Language */
+            resume_language: ("zh" | "en") | null;
+            /** Top N */
+            top_n: number;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Total Jobs */
+            total_jobs: number;
+            /** Shortlisted Jobs */
+            shortlisted_jobs: number;
+            /** Ranked Jobs */
+            ranked_jobs: number;
+            /** Jobs */
+            jobs: components["schemas"]["JobOut"][];
+        };
+        /** BatchOut */
+        BatchOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Company */
+            company: string;
+            /** Source Url */
+            source_url: string | null;
+            filters: components["schemas"]["ScreeningFilters"];
+            /** Resume Language */
+            resume_language: ("zh" | "en") | null;
+            /** Top N */
+            top_n: number;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Total Jobs */
+            total_jobs: number;
+            /** Shortlisted Jobs */
+            shortlisted_jobs: number;
+            /** Ranked Jobs */
+            ranked_jobs: number;
         };
         /** Body_interviews-create_interview */
         "Body_interviews-create_interview": {
@@ -794,6 +1037,14 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** ExtractRequest */
+        ExtractRequest: {
+            /**
+             * Text
+             * @description 招聘列表页的文本（复制整页）
+             */
+            text: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -909,6 +1160,73 @@ export interface components {
             weak_points: components["schemas"]["WeakPointOut"][];
             /** Next Round Advice */
             next_round_advice: string[];
+        };
+        /** JdIn */
+        JdIn: {
+            /** Jd Text */
+            jd_text: string;
+        };
+        /** JobIn */
+        JobIn: {
+            /** Title */
+            title: string;
+            /** Location */
+            location?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Job Type */
+            job_type?: ("校招" | "实习" | "社招") | null;
+            /** Url */
+            url?: string | null;
+            /** Snippet */
+            snippet?: string | null;
+        };
+        /** JobOut */
+        JobOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+            /** Location */
+            location: string | null;
+            /** Category */
+            category: string | null;
+            /** Job Type */
+            job_type: string | null;
+            /** Url */
+            url: string | null;
+            /** Snippet */
+            snippet: string | null;
+            /** Has Jd */
+            has_jd: boolean;
+            /** Filtered Reason */
+            filtered_reason: string | null;
+            /** Coarse Score */
+            coarse_score: number | null;
+            /** Coarse Reason */
+            coarse_reason: string | null;
+            /** Shortlisted */
+            shortlisted: boolean;
+            /** Score */
+            score: number | null;
+            /** Rank Result */
+            rank_result: {
+                [key: string]: unknown;
+            } | null;
+            /** Rank Error */
+            rank_error: string | null;
+            /** Application Id */
+            application_id: string | null;
+        };
+        /** JobsIn */
+        JobsIn: {
+            /** Jobs */
+            jobs: components["schemas"]["JobIn"][];
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1374,6 +1692,30 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** ScreenResult */
+        ScreenResult: {
+            batch: components["schemas"]["BatchDetail"];
+            /** Needs Jd */
+            needs_jd: components["schemas"]["JobOut"][];
+        };
+        /** ScreeningFilters */
+        ScreeningFilters: {
+            /**
+             * Cities
+             * @description 只保留这些城市的岗位；为空表示不限
+             */
+            cities?: string[];
+            /**
+             * Job Types
+             * @description 只保留这些招聘类型；为空表示不限
+             */
+            job_types?: ("校招" | "实习" | "社招")[];
+            /**
+             * Exclude Keywords
+             * @description 岗位名包含这些词的直接排除
+             */
+            exclude_keywords?: string[];
         };
         /**
          * Stage
@@ -2648,6 +2990,319 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-list_batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchOut"][];
+                };
+            };
+        };
+    };
+    "screening-create_batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-get_batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-delete_batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-add_jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddJobsResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-extract_jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddJobsResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-screen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreenResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-set_jd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JdIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE 事件流 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    "screening-import_job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */

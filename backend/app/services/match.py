@@ -69,7 +69,7 @@ def jd_language(app: Application) -> ResumeLanguage:
     return "en" if cjk / (cjk + latin) < 0.05 else "zh"
 
 
-def _pick_resume(
+def pick_resume(
     resumes: dict[str, Resume], app: Application, requested: ResumeLanguage | None
 ) -> Resume:
     """选出这次分析用的简历。
@@ -97,7 +97,7 @@ async def check_ready(
         raise NotFound
     if not (app.jd_text or app.jd_parsed):
         raise MatchPrecondition("这条投递还没有岗位描述（JD），请先在详情页补充")
-    _pick_resume(await resume_service.list_resumes(db, user), app, resume_language)
+    pick_resume(await resume_service.list_resumes(db, user), app, resume_language)
 
 
 def _to_out(report: MatchReport, resume: Resume | None) -> MatchReportOut:
@@ -133,7 +133,7 @@ async def stream_match(
             yield _sse("error", {"detail": "投递记录已不存在"})
             return
         try:
-            resume = _pick_resume(await resume_service.list_resumes(db, user), app, resume_language)
+            resume = pick_resume(await resume_service.list_resumes(db, user), app, resume_language)
         except MatchPrecondition as exc:
             yield _sse("error", {"detail": str(exc)})
             return
