@@ -29,6 +29,14 @@ def require_llm() -> LLMClient:
         ) from None
 
 
+def optional_llm() -> LLMClient | None:
+    """AI 只是锦上添花的接口用这个：没配 API Key 时返回 None，接口照常工作。"""
+    try:
+        return get_llm_client()
+    except LLMNotConfigured:
+        return None
+
+
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> User:
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录或登录已过期"

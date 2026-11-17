@@ -7,6 +7,7 @@ import {
   CalendarDays,
   FileText,
   KanbanSquare,
+  ListFilter,
   LogOut,
   MessagesSquare,
   type LucideIcon,
@@ -25,6 +26,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon };
 
 const NAV: NavItem[] = [
   { href: "/board", label: "求职看板", icon: KanbanSquare },
+  { href: "/screening", label: "岗位筛选", icon: ListFilter },
   { href: "/calendar", label: "日历", icon: CalendarDays },
   { href: "/resume", label: "我的简历", icon: FileText },
   { href: "/interviews", label: "面试复盘", icon: MessagesSquare },

@@ -1,8 +1,9 @@
 """岗位匹配分析：既是大模型的输出格式（字段描述就是提示词），也是接口的返回格式。"""
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
@@ -92,7 +93,14 @@ LEVEL_POINTS = {"strong": 100, "partial": 50, "missing": 0}
 IMPORTANCE_WEIGHT = {"required": 2, "preferred": 1}
 
 
-def compute_score(requirements: list[RequirementMatch]) -> int:
+class _Judged(Protocol):
+    """只要有 importance 和 level 两个字段就能计分：完整匹配分析和岗位筛选的精排共用这套规则。"""
+
+    importance: str
+    level: str
+
+
+def compute_score(requirements: Sequence[_Judged]) -> int:
     """各条要求得分的加权平均：匹配 100、部分匹配 50、缺失 0；必备要求权重 2，加分项权重 1。"""
     total_weight = sum(IMPORTANCE_WEIGHT[r.importance] for r in requirements)
     if total_weight == 0:

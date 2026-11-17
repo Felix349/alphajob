@@ -7,6 +7,7 @@ from app.models.interview import Interview, InterviewStatus, Mastery, Question, 
 from app.models.llm_call_log import LLMCallLog
 from app.models.match import MatchReport, PrepCategory, PrepItem
 from app.models.resume import Resume
+from app.models.screening import ScreeningBatch, ScreeningJob
 from app.models.user import User
 
 __all__ = [
@@ -25,6 +26,8 @@ __all__ = [
     "PrepItem",
     "Question",
     "Resume",
+    "ScreeningBatch",
+    "ScreeningJob",
     "Stage",
     "User",
     "WeakPoint",
